@@ -1,0 +1,19 @@
+[package]
+name = "encode_password"
+version = "0.1.0"
+edition = "2024"
+
+[workspace]
+members = [".", "entity"]
+
+[dependencies]
+entity = { path = "entity" }
+dotenvy = "0.15.7"
+simplestcrypt = "0.2.0"
+base64 = "0.22.1"
+clap = { version = "4.5.46", features = ["derive"] }
+sea-orm = { version = "2.0.0-rc.13", features = [
+    "runtime-tokio",
+    "sqlx-postgres",
+] }
+tokio = { version = "1.47.1", features = ["full"] }
