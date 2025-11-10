@@ -28,6 +28,8 @@ pub enum Relation {
         on_delete = "Cascade"
     )]
     GeneralPropertiesDb,
+    #[sea_orm(has_many = "super::user_account::Entity")]
+    UserAccount,
     #[sea_orm(
         belongs_to = "super::user_properties::Entity",
         from = "Column::UserProperties",
@@ -41,6 +43,12 @@ pub enum Relation {
 impl Related<super::general_properties_db::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::GeneralPropertiesDb.def()
+    }
+}
+
+impl Related<super::user_account::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::UserAccount.def()
     }
 }
 

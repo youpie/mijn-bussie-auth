@@ -1,7 +1,6 @@
 use std::path::PathBuf;
 
 use base64::{Engine, prelude::BASE64_STANDARD_NO_PAD};
-use bcrypt::DEFAULT_COST;
 use clap::{Parser, arg};
 use dotenvy::{dotenv_override, var};
 use entity::{user_data, user_properties};
@@ -9,9 +8,13 @@ use sea_orm::Database;
 use sea_orm::{ActiveValue::Set, DatabaseConnection, EntityTrait};
 
 use crate::file_user::file::load_user;
+use crate::web::api::Api;
 
 mod file_user;
 mod web;
+
+type GenResult<T> = Result<T, GenError>;
+type GenError = Box<dyn std::error::Error + Send + Sync + 'static>;
 
 /// Simple program to greet a person
 #[derive(Parser, Debug)]
@@ -24,7 +27,7 @@ struct Args {
 }
 
 #[tokio::main]
-async fn main() {
+async fn main() -> GenResult<()> {
     dotenv_override().unwrap();
     let secret = var("PASSWORD_SECRET").unwrap();
     let args = Args::parse();
@@ -38,6 +41,8 @@ async fn main() {
         let id = add_user_to_db(&db, data).await;
         println!("added user with ID of {id}");
     }
+    Api::new().await?.serve().await?;
+    Ok(())
 }
 
 fn encode_password(password: String, secret: String) -> String {

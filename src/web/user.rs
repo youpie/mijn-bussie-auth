@@ -17,9 +17,9 @@ pub enum Permissions {
 
 #[derive(DerivePartialModel, Debug, Clone)]
 #[sea_orm(entity = "user_account::Entity")]
-struct UserAccount {
+pub struct UserAccount {
     #[sea_orm(nested)]
-    inner: user_account::Model,
+    pub inner: user_account::Model,
 }
 
 impl AuthUser for UserAccount {
@@ -35,13 +35,13 @@ impl AuthUser for UserAccount {
 }
 
 #[derive(Debug, Clone, Deserialize)]
-struct Credentials {
+pub struct Credentials {
     pub username: String,
     pub password: String,
 }
 
 #[derive(Debug, Clone)]
-struct Backend {
+pub struct Backend {
     db: DatabaseConnection,
 }
 
@@ -129,3 +129,5 @@ impl AuthzBackend for Backend {
         Ok(self.get_all_permissions(user).await?.contains(&perm))
     }
 }
+
+pub type AuthSession = axum_login::AuthSession<Backend>;
