@@ -1,7 +1,6 @@
 use std::collections::HashSet;
 use std::str::FromStr;
 
-use axum::response::IntoResponse;
 use axum_login::{AuthUser, AuthnBackend, AuthzBackend};
 use bcrypt::DEFAULT_COST;
 use entity::{user_account, user_data};
@@ -162,6 +161,7 @@ pub type AuthSession = axum_login::AuthSession<Backend>;
 
 pub trait GetUser {
     fn get_user(self) -> Result<UserAccount, StatusCode>;
+    async fn is_admin(&self) -> bool;
 }
 
 impl GetUser for AuthSession {
@@ -169,6 +169,18 @@ impl GetUser for AuthSession {
         match self.user {
             Some(user) => Ok(user),
             None => Err(StatusCode::INTERNAL_SERVER_ERROR),
+        }
+    }
+
+    async fn is_admin(&self) -> bool {
+        if let Some(user) = &self.user {
+            self.backend
+                .has_perm(user, Permissions::Admin)
+                .await
+                // Dont know the default value of a bool
+                .unwrap_or(false)
+        } else {
+            false
         }
     }
 }

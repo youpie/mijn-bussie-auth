@@ -1,5 +1,5 @@
 use axum::Router;
-use axum_login::{AuthManagerLayerBuilder, login_required};
+use axum_login::{AuthManagerLayerBuilder, login_required, permission_required};
 use dotenvy::var;
 use sea_orm::{Database, DatabaseConnection, sqlx::PgPool};
 use tower_sessions::{Expiry, SessionManagerLayer, cookie::time::Duration};
@@ -7,7 +7,10 @@ use tower_sessions_sqlx_store::PostgresStore;
 
 use crate::{
     GenResult, instance_handling,
-    web::{auth, new_user, protected, user::Backend},
+    web::{
+        auth, new_user, protected,
+        user::{Backend, Permissions},
+    },
 };
 
 #[derive(Debug, Clone)]
@@ -44,6 +47,8 @@ impl Api {
         let auth_layer = AuthManagerLayerBuilder::new(backend, session_layer).build();
         let test = self.clone();
         let app = Router::new()
+            .nest("/admin", instance_handling::router::admin_router())
+            .route_layer(permission_required!(Backend, Permissions::Admin))
             .merge(protected::router())
             .merge(instance_handling::router::protected_router())
             .route_layer(login_required!(Backend))

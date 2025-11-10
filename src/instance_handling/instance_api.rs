@@ -5,7 +5,10 @@ use std::str::FromStr;
 use dotenvy::var;
 use reqwest::{Response, StatusCode, Url};
 
-use crate::GenResult;
+use crate::{
+    GenResult,
+    web::user::{AuthSession, GetUser},
+};
 
 pub struct Instance {}
 
@@ -40,6 +43,16 @@ impl Instance {
         let url = Self::create_base_url()?
             .join(user_name)?
             .join("/ExitCode")?;
+        Ok(String::from_utf8(
+            reqwest::get(url).await?.bytes().await?.to_vec(),
+        )?)
+    }
+
+    pub async fn get_logbook(user_name: &str, auth_session: &AuthSession) -> GenResult<String> {
+        if !auth_session.is_admin().await {
+            return Err("Admin required".into());
+        }
+        let url = Self::create_base_url()?.join(user_name)?.join("/Logbook")?;
         Ok(String::from_utf8(
             reqwest::get(url).await?.bytes().await?.to_vec(),
         )?)
