@@ -1,0 +1,47 @@
+use axum::{Router, routing::get};
+
+use crate::{
+    instance_handling::admin::db::get::{get_all_instances, get_all_users},
+    web::api::Api,
+};
+
+pub fn router() -> Router<Api> {
+    Router::new()
+        .route("/instances", get(get_all_instances))
+        .route("/users", get(get_all_users))
+}
+
+mod get {
+    use axum::{extract::State, response::IntoResponse};
+    use entity::{user_account, user_data};
+    use reqwest::StatusCode;
+    use sea_orm::EntityTrait;
+
+    use crate::web::api::Api;
+
+    pub async fn get_all_instances(State(data): State<Api>) -> impl IntoResponse {
+        if let Ok(instances) = user_data::Entity::find().all(&data.db).await {
+            let instances: Vec<String> = instances.iter().map(|x| x.user_name.to_owned()).collect();
+            (
+                StatusCode::OK,
+                serde_json::to_string_pretty(&instances).unwrap(),
+            )
+                .into_response()
+        } else {
+            StatusCode::INTERNAL_SERVER_ERROR.into_response()
+        }
+    }
+
+    pub async fn get_all_users(State(data): State<Api>) -> impl IntoResponse {
+        if let Ok(instances) = user_account::Entity::find().all(&data.db).await {
+            let instances: Vec<String> = instances.iter().map(|x| x.username.to_owned()).collect();
+            (
+                StatusCode::OK,
+                serde_json::to_string_pretty(&instances).unwrap(),
+            )
+                .into_response()
+        } else {
+            StatusCode::INTERNAL_SERVER_ERROR.into_response()
+        }
+    }
+}
