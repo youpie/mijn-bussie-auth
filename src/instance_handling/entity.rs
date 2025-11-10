@@ -59,9 +59,9 @@ impl MijnBussieUser {
         let user_data = user_data::ActiveModel {
             user_data_id: NotSet,
             user_name: Set(user_name),
-            personeelsnummer: Set(self.personeelsnummer),
+            personeelsnummer: Set(encode_password(self.personeelsnummer)),
             password: Set(encode_password(self.password)),
-            email: Set(self.email),
+            email: Set(encode_password(self.email)),
             file_name: Set(random_filename),
             user_properties: NotSet,
             custom_general_properties: NotSet,
