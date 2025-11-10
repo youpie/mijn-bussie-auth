@@ -2,11 +2,15 @@ use std::collections::HashSet;
 use std::str::FromStr;
 
 use axum_login::{AuthUser, AuthnBackend, AuthzBackend};
+use bcrypt::DEFAULT_COST;
 use entity::user_account;
+use sea_orm::ActiveValue::{NotSet, Set};
 use sea_orm::ColumnTrait;
 use sea_orm::{DatabaseConnection, DerivePartialModel, EntityTrait, QueryFilter};
 use serde::Deserialize;
 use tokio::task;
+
+use crate::GenResult;
 
 #[derive(strum::EnumString, Debug, Clone, PartialEq, Eq, Hash, Default)]
 pub enum Permissions {
@@ -22,11 +26,25 @@ pub struct UserAccount {
     pub inner: user_account::Model,
 }
 
+impl UserAccount {
+    pub async fn add_user(db: &DatabaseConnection, creds: Credentials) -> GenResult<()> {
+        let account = user_account::ActiveModel {
+            account_id: NotSet,
+            username: Set(creds.username),
+            password_hash: Set(bcrypt::hash(creds.password, DEFAULT_COST)?),
+            role: Set("User".to_owned()),
+            backend_user: NotSet,
+        };
+        user_account::Entity::insert(account).exec(db).await?;
+        Ok(())
+    }
+}
+
 impl AuthUser for UserAccount {
     type Id = i32;
 
     fn id(&self) -> Self::Id {
-        self.inner.id
+        self.inner.account_id
     }
 
     fn session_auth_hash(&self) -> &[u8] {

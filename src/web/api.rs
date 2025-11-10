@@ -7,11 +7,12 @@ use tower_sessions_sqlx_store::PostgresStore;
 
 use crate::{
     GenResult,
-    web::{auth, user::Backend},
+    web::{auth, new_user, protected, user::Backend},
 };
 
+#[derive(Debug, Clone)]
 pub struct Api {
-    db: DatabaseConnection,
+    pub db: DatabaseConnection,
 }
 
 impl Api {
@@ -39,10 +40,15 @@ impl Api {
         //
         // This combines the session layer with our backend to establish the auth
         // service which will provide the auth session as a request extension.
-        let backend = Backend::new(self.db);
+        let backend = Backend::new(self.db.clone());
         let auth_layer = AuthManagerLayerBuilder::new(backend, session_layer).build();
-
-        let app = Router::new().merge(auth::router()).layer(auth_layer);
+        let test = self.clone();
+        let app = Router::new()
+            .merge(auth::router())
+            .merge(new_user::router())
+            .merge(protected::router())
+            .layer(auth_layer)
+            .with_state(test);
 
         let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
         axum::serve(listener, app.into_make_service()).await?;

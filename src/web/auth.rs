@@ -2,9 +2,10 @@ use axum::Router;
 use axum::routing::get;
 use axum::routing::post;
 
+use crate::web::api::Api;
 use crate::web::user::{AuthSession, Credentials};
 
-pub fn router() -> Router<()> {
+pub fn router() -> Router<Api> {
     Router::new()
         .route("/login", post(self::post::login))
         .route("/logout", get(self::get::logout))
