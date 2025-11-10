@@ -9,7 +9,6 @@ pub struct Model {
     #[sea_orm(primary_key)]
     pub user_properties_id: i32,
     pub execution_interval_minutes: i32,
-    pub execution_minute: i32,
     pub send_mail_new_shift: bool,
     pub send_mail_updated_shift: bool,
     pub send_mail_removed_shift: bool,
@@ -18,6 +17,7 @@ pub struct Model {
     pub send_error_mail: bool,
     pub split_night_shift: bool,
     pub stop_midnight_shift: bool,
+    pub execution_minute: i32,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
