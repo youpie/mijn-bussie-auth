@@ -20,10 +20,7 @@ mod post {
         instance_handling::{
             admin::AdminQuery,
             entity::MijnBussieUser,
-            generic::{
-                change_password::post::{PasswordChange, change_password},
-                create_instance::post::create_instance_and_attach,
-            },
+            generic::change_password::post::{PasswordChange, change_password},
         },
         web::api::Api,
     };
@@ -34,13 +31,13 @@ mod post {
         Json(instance): Json<MijnBussieUser>,
     ) -> impl IntoResponse {
         let db = &data.db;
-        let user = match user.get_user_account(db).await {
-            Some(user) => user,
+        let _user = match user.get_user_account(db).await {
+            Some(user) => user.get_instance_data(db).await.ok().flatten(),
             None => {
                 return (StatusCode::NOT_FOUND, "User not found").into_response();
             }
         };
-        match create_instance_and_attach(db, &user, instance).await {
+        match MijnBussieUser::create_and_insert_models(instance, db, None).await {
             Ok(_) => StatusCode::OK.into_response(),
             Err(err) => (StatusCode::INTERNAL_SERVER_ERROR, err.to_string()).into_response(),
         }
