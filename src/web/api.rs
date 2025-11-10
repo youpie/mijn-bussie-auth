@@ -56,8 +56,10 @@ impl Api {
             .merge(new_user::router())
             .layer(auth_layer)
             .with_state(test);
-
-        let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
+        let port = var("API_PORT")?;
+        let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:{port}"))
+            .await
+            .unwrap();
         axum::serve(listener, app.into_make_service()).await?;
 
         Ok(())

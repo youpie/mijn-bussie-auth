@@ -24,9 +24,14 @@ mod post {
         Json(password): Json<PasswordChange>,
     ) -> impl IntoResponse {
         let user = auth_session.user.expect("No user in protected space");
-        match change_password(&data.db, &user, &password).await {
-            Ok(response) => response.into_response(),
-            Err(_) => StatusCode::INTERNAL_SERVER_ERROR.into_response(),
-        }
+        let response = if let Ok(Some(instance_data)) = user.get_instance_data(&data.db).await {
+            match change_password(&data.db, &instance_data, &password).await {
+                Ok(response) => response.into_response(),
+                Err(_) => StatusCode::INTERNAL_SERVER_ERROR.into_response(),
+            }
+        } else {
+            StatusCode::NOT_FOUND.into_response()
+        };
+        response
     }
 }
