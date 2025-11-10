@@ -3,9 +3,10 @@ use std::str::FromStr;
 
 use axum_login::{AuthUser, AuthnBackend, AuthzBackend};
 use bcrypt::DEFAULT_COST;
-use entity::user_account;
+use entity::{user_account, user_data};
 use sea_orm::ActiveValue::{NotSet, Set};
-use sea_orm::ColumnTrait;
+use sea_orm::ModelTrait;
+use sea_orm::{ColumnTrait, Related};
 use sea_orm::{DatabaseConnection, DerivePartialModel, EntityTrait, QueryFilter};
 use serde::Deserialize;
 use tokio::task;
@@ -37,6 +38,12 @@ impl UserAccount {
         };
         user_account::Entity::insert(account).exec(db).await?;
         Ok(())
+    }
+    pub async fn get_instance_data(
+        &self,
+        db: &DatabaseConnection,
+    ) -> GenResult<Option<user_data::Model>> {
+        Ok(self.inner.find_related(user_data::Entity).one(db).await?)
     }
 }
 

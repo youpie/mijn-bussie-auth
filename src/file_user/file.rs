@@ -6,10 +6,7 @@ use sea_orm::ActiveValue::{NotSet, Set};
 
 use crate::encode_password;
 
-pub fn load_user(
-    path: PathBuf,
-    secret: String,
-) -> (user_properties::ActiveModel, user_data::ActiveModel) {
+pub fn load_user(path: PathBuf) -> (user_properties::ActiveModel, user_data::ActiveModel) {
     let mut env_path = path.clone();
     env_path.push(".env");
     dotenvy::from_filename_override(env_path).unwrap();
@@ -59,7 +56,7 @@ pub fn load_user(
     let user_data = user_data::ActiveModel {
         user_name: Set(username.clone()),
         personeelsnummer: Set(username.clone()),
-        password: Set(encode_password(password, secret)),
+        password: Set(encode_password(password)),
         email: Set(email_to),
         file_name: Set(filename.unwrap_or(username)),
         user_properties: NotSet,

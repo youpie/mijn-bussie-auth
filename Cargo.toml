@@ -27,3 +27,6 @@ strum = { version = "0.27.2", features = ["derive"] }
 thiserror = "2.0.17"
 serde = "1.0.228"
 serde_json = "1.0.145"
+random_str = "0.1.2"
+futures = "0.3.31"
+reqwest = "0.12.24"

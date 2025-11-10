@@ -1,5 +1,5 @@
 use axum::Router;
-use axum_login::AuthManagerLayerBuilder;
+use axum_login::{AuthManagerLayerBuilder, login_required};
 use dotenvy::var;
 use sea_orm::{Database, DatabaseConnection, sqlx::PgPool};
 use tower_sessions::{Expiry, SessionManagerLayer, cookie::time::Duration};
@@ -44,9 +44,10 @@ impl Api {
         let auth_layer = AuthManagerLayerBuilder::new(backend, session_layer).build();
         let test = self.clone();
         let app = Router::new()
+            .merge(protected::router())
+            .route_layer(login_required!(Backend))
             .merge(auth::router())
             .merge(new_user::router())
-            .merge(protected::router())
             .layer(auth_layer)
             .with_state(test);
 
