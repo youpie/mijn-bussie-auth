@@ -6,7 +6,7 @@ use tower_sessions::{Expiry, SessionManagerLayer, cookie::time::Duration};
 use tower_sessions_sqlx_store::PostgresStore;
 
 use crate::{
-    GenResult,
+    GenResult, instance_handling,
     web::{auth, new_user, protected, user::Backend},
 };
 
@@ -45,6 +45,7 @@ impl Api {
         let test = self.clone();
         let app = Router::new()
             .merge(protected::router())
+            .merge(instance_handling::router::protected_router())
             .route_layer(login_required!(Backend))
             .merge(auth::router())
             .merge(new_user::router())

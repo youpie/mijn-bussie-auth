@@ -1,12 +1,14 @@
 use std::collections::HashSet;
 use std::str::FromStr;
 
+use axum::response::IntoResponse;
 use axum_login::{AuthUser, AuthnBackend, AuthzBackend};
 use bcrypt::DEFAULT_COST;
 use entity::{user_account, user_data};
+use reqwest::StatusCode;
 use sea_orm::ActiveValue::{NotSet, Set};
+use sea_orm::ColumnTrait;
 use sea_orm::ModelTrait;
-use sea_orm::{ColumnTrait, Related};
 use sea_orm::{DatabaseConnection, DerivePartialModel, EntityTrait, QueryFilter};
 use serde::Deserialize;
 use tokio::task;
@@ -39,6 +41,7 @@ impl UserAccount {
         user_account::Entity::insert(account).exec(db).await?;
         Ok(())
     }
+
     pub async fn get_instance_data(
         &self,
         db: &DatabaseConnection,
@@ -156,3 +159,16 @@ impl AuthzBackend for Backend {
 }
 
 pub type AuthSession = axum_login::AuthSession<Backend>;
+
+pub trait GetUser {
+    fn get_user(self) -> Result<UserAccount, StatusCode>;
+}
+
+impl GetUser for AuthSession {
+    fn get_user(self) -> Result<UserAccount, StatusCode> {
+        match self.user {
+            Some(user) => Ok(user),
+            None => Err(StatusCode::INTERNAL_SERVER_ERROR),
+        }
+    }
+}

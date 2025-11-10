@@ -12,6 +12,7 @@ use crate::file_user::file::load_user;
 use crate::web::api::Api;
 
 mod file_user;
+mod instance_handling;
 mod web;
 
 type GenResult<T> = Result<T, GenError>;
