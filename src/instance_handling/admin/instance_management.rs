@@ -6,6 +6,10 @@ pub fn router() -> Router<Api> {
     Router::new()
         .route("/add_instance", post(self::post::create_instance_admin))
         .route("/change_password", post(self::post::change_password_admin))
+        .route(
+            "/assign_instance",
+            post(self::post::assign_instance_to_account),
+        )
 }
 
 mod post {
@@ -20,7 +24,10 @@ mod post {
         instance_handling::{
             admin::AdminQuery,
             entity::MijnBussieUser,
-            generic::change_password::post::{PasswordChange, change_password},
+            generic::{
+                change_password::post::{PasswordChange, change_password},
+                create_instance::post::attach_user_to_instance,
+            },
         },
         web::api::Api,
     };
@@ -43,13 +50,31 @@ mod post {
         }
     }
 
+    pub async fn assign_instance_to_account(
+        State(data): State<Api>,
+        Query(user): Query<AdminQuery>,
+    ) -> impl IntoResponse {
+        let db = &data.db;
+        if let Some(user_account) = user.get_user_account(db).await
+            && let Some(instance_name) = user.instance_name
+            && let Some(instance_data) = MijnBussieUser::find_by_username(db, &instance_name).await
+        {
+            match attach_user_to_instance(db, &user_account, &instance_data).await {
+                Ok(_) => StatusCode::OK.into_response(),
+                Err(err) => (StatusCode::INTERNAL_SERVER_ERROR, err.to_string()).into_response(),
+            }
+        } else {
+            StatusCode::INTERNAL_SERVER_ERROR.into_response()
+        }
+    }
+
     pub async fn change_password_admin(
         State(data): State<Api>,
         Query(user): Query<AdminQuery>,
         Json(password): Json<PasswordChange>,
     ) -> impl IntoResponse {
         let db = &data.db;
-        let user = match user.get_user_instance(db).await {
+        let user = match user.get_instance_from_account(db).await {
             Some(user) => user,
             None => {
                 return (StatusCode::NOT_FOUND, "User not found").into_response();

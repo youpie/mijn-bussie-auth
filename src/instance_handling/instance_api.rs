@@ -5,10 +5,7 @@ use std::str::FromStr;
 use dotenvy::var;
 use reqwest::{Response, StatusCode, Url};
 
-use crate::{
-    GenResult,
-    web::user::{AuthSession, GetUser},
-};
+use crate::GenResult;
 
 pub struct Instance {}
 
@@ -61,14 +58,21 @@ impl Instance {
         Ok((request.status(), request.text().await?))
     }
 
-    pub async fn get_logbook(
-        user_name: &str,
-        auth_session: &AuthSession,
-    ) -> GenResult<(StatusCode, String)> {
-        if !auth_session.is_admin().await {
-            return Err("Admin required".into());
-        }
+    pub async fn get_calendar_link(user_name: &str) -> GenResult<(StatusCode, String)> {
+        let mut url = Self::create_base_url(Some(user_name))?.join("Calendar")?;
+        url = Self::set_query(url);
+        let request = reqwest::get(url).await?;
+        Ok((request.status(), request.text().await?))
+    }
 
+    pub async fn get_is_active(user_name: &str) -> GenResult<(StatusCode, String)> {
+        let mut url = Self::create_base_url(Some(user_name))?.join("IsActive")?;
+        url = Self::set_query(url);
+        let request = reqwest::get(url).await?;
+        Ok((request.status(), request.text().await?))
+    }
+
+    pub async fn get_logbook(user_name: &str) -> GenResult<(StatusCode, String)> {
         let mut url = Self::create_base_url(Some(user_name))?.join("Logbook")?;
         url = Self::set_query(url);
         println!("Sending admin request to {url:?}");

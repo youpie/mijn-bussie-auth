@@ -31,7 +31,7 @@ impl MijnBussieUser {
         Ok(user_exists.map(|model| model.user_data_id))
     }
 
-    pub async fn _find_by_username(
+    pub async fn find_by_username(
         db: &DatabaseConnection,
         user_name: &str,
     ) -> Option<UserDataModel> {

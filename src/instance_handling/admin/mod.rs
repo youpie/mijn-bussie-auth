@@ -1,5 +1,5 @@
-use entity::{user_account, user_data};
-use sea_orm::{DatabaseConnection, EntityTrait, QueryFilter};
+use entity::user_account;
+use sea_orm::{DatabaseConnection, EntityTrait, QueryFilter, Related};
 use serde::Deserialize;
 
 use crate::{instance_handling::entity::UserDataModel, web::user::UserAccount};
@@ -30,16 +30,25 @@ impl AdminQuery {
         }
     }
 
-    pub async fn get_user_instance(&self, db: &DatabaseConnection) -> Option<UserDataModel> {
-        if let Some(instance_name) = &self.instance_name {
-            user_data::Entity::find()
-                .filter(user_data::Column::UserName.eq(instance_name.clone()))
+    async fn get_instance_from_account(&self, db: &DatabaseConnection) -> Option<UserDataModel> {
+        if let Some(account_name) = &self.account_name {
+            user_account::Entity::find_related()
+                .filter(user_account::Column::Username.eq(account_name))
                 .one(db)
                 .await
                 .ok()
                 .flatten()
         } else {
             None
+        }
+    }
+
+    pub async fn get_instance_name(&self, db: &DatabaseConnection) -> Option<String> {
+        let instance = self.get_instance_from_account(db).await;
+        if let Some(instance_model) = instance {
+            Some(instance_model.user_name.clone())
+        } else {
+            self.instance_name.clone()
         }
     }
 }
