@@ -39,7 +39,7 @@ async fn main() -> GenResult<()> {
             .await
             .expect("Could not connect to database");
         let data = load_user(PathBuf::from(path));
-        let id = add_user_to_db(&db, data.0, data.1).await.unwrap();
+        let id = add_new_user_to_db(&db, data.0, data.1).await.unwrap();
         println!("added user with ID of {}", id.user_data_id);
     }
     Api::new().await?.serve().await?;
@@ -53,7 +53,7 @@ fn encode_password(password: String) -> String {
     )
 }
 
-async fn add_user_to_db(
+async fn add_new_user_to_db(
     db: &DatabaseConnection,
     user_properties: user_properties::ActiveModel,
     mut user_data: user_data::ActiveModel,
@@ -67,5 +67,18 @@ async fn add_user_to_db(
     let data_res = user_data::Entity::insert(user_data)
         .exec_with_returning(db)
         .await?;
+    Ok(data_res)
+}
+
+async fn update_user_in_db(
+    db: &DatabaseConnection,
+    user_properties: user_properties::ActiveModel,
+    user_data: user_data::ActiveModel,
+) -> GenResult<Model> {
+    user_properties::Entity::update(user_properties)
+        .exec(db)
+        .await?;
+
+    let data_res = user_data::Entity::update(user_data).exec(db).await?;
     Ok(data_res)
 }

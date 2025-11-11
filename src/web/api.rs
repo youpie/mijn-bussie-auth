@@ -8,7 +8,7 @@ use tower_sessions_sqlx_store::PostgresStore;
 use crate::{
     GenResult, instance_handling,
     web::{
-        auth, new_user, protected,
+        auth, new_user,
         user::{Backend, Permissions},
     },
 };
@@ -49,7 +49,6 @@ impl Api {
         let app = Router::new()
             .nest("/admin", instance_handling::router::admin_router())
             .route_layer(permission_required!(Backend, Permissions::Admin))
-            .merge(protected::router())
             .merge(instance_handling::router::protected_router())
             .route_layer(login_required!(Backend))
             .merge(auth::router())

@@ -3,7 +3,7 @@ use axum::{Json, Router, response::IntoResponse, routing::post};
 use crate::web::{api::Api, user::Credentials};
 
 pub fn router() -> Router<Api> {
-    Router::new().route("/add", post(self::post::create_user))
+    Router::new().route("/signup", post(self::post::create_user))
 }
 
 mod post {

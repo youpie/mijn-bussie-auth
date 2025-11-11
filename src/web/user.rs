@@ -161,7 +161,7 @@ pub type AuthSession = axum_login::AuthSession<Backend>;
 
 pub trait GetUser {
     fn get_user(self) -> Result<UserAccount, StatusCode>;
-    async fn is_admin(&self) -> bool;
+    async fn _is_admin(&self) -> bool;
 }
 
 impl GetUser for AuthSession {
@@ -172,7 +172,7 @@ impl GetUser for AuthSession {
         }
     }
 
-    async fn is_admin(&self) -> bool {
+    async fn _is_admin(&self) -> bool {
         if let Some(user) = &self.user {
             self.backend
                 .has_perm(user, Permissions::Admin)
