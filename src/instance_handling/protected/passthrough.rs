@@ -30,7 +30,11 @@ mod get {
                 return StatusCode::INTERNAL_SERVER_ERROR.into_response();
             }
         };
-        match instance_api::Instance::get_calendar_link(&user.inner.username).await {
+        match instance_api::Instance::get_calendar_link(
+            &user.inner.backend_user.unwrap_or_default(),
+        )
+        .await
+        {
             Ok(link) if link.0 == StatusCode::OK => link.into_response(),
             Ok(link) => link.0.into_response(),
             Err(_) => StatusCode::INTERNAL_SERVER_ERROR.into_response(),
@@ -44,7 +48,9 @@ mod get {
                 return StatusCode::INTERNAL_SERVER_ERROR.into_response();
             }
         };
-        match instance_api::Instance::get_logbook(&user.inner.username).await {
+        match instance_api::Instance::get_logbook(&user.inner.backend_user.unwrap_or_default())
+            .await
+        {
             Ok(link) if link.0 == StatusCode::OK => link.into_response(),
             Ok(link) => link.0.into_response(),
             Err(_) => StatusCode::INTERNAL_SERVER_ERROR.into_response(),
@@ -58,7 +64,9 @@ mod get {
                 return StatusCode::INTERNAL_SERVER_ERROR.into_response();
             }
         };
-        match instance_api::Instance::get_is_active(&user.inner.username).await {
+        match instance_api::Instance::get_is_active(&user.inner.backend_user.unwrap_or_default())
+            .await
+        {
             Ok(link) if link.0 == StatusCode::OK => link.into_response(),
             Ok(link) => link.0.into_response(),
             Err(_) => StatusCode::INTERNAL_SERVER_ERROR.into_response(),
