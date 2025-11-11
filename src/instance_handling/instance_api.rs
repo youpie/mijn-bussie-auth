@@ -10,6 +10,14 @@ use crate::GenResult;
 pub struct Instance {}
 
 impl Instance {
+    async fn send_request(url: Url) -> reqwest::Result<Response> {
+        let client = reqwest::Client::builder()
+            .danger_accept_invalid_certs(true)
+            .danger_accept_invalid_hostnames(true)
+            .build()?;
+        client.get(url).send().await
+    }
+
     fn create_base_url(user_name: Option<&str>) -> GenResult<Url> {
         let mut url = Url::from_str(&var("MIJN_BUSSIE_URL")?)?.join("api/")?;
         if let Some(user_name) = user_name {
@@ -42,33 +50,33 @@ impl Instance {
             .join("refresh/")?
             .join(user_name)?;
         url = Self::set_query(url);
-        Ok(Self::verify_response(reqwest::get(url).await?))
+        Ok(Self::verify_response(Self::send_request(url).await?))
     }
 
     pub async fn start_user(user_name: &str) -> GenResult<bool> {
         let mut url = Self::create_base_url(Some(user_name))?.join("start")?;
         url = Self::set_query(url);
-        Ok(Self::verify_response(reqwest::get(url).await?))
+        Ok(Self::verify_response(Self::send_request(url).await?))
     }
 
     pub async fn get_exit_code(user_name: &str) -> GenResult<(StatusCode, String)> {
         let mut url = Self::create_base_url(Some(user_name))?.join("ExitCode")?;
         url = Self::set_query(url);
-        let request = reqwest::get(url).await?;
+        let request = Self::send_request(url).await?;
         Ok((request.status(), request.text().await?))
     }
 
     pub async fn get_calendar_link(user_name: &str) -> GenResult<(StatusCode, String)> {
         let mut url = Self::create_base_url(Some(user_name))?.join("Calendar")?;
         url = Self::set_query(url);
-        let request = reqwest::get(url).await?;
+        let request = Self::send_request(url).await?;
         Ok((request.status(), request.text().await?))
     }
 
     pub async fn get_is_active(user_name: &str) -> GenResult<(StatusCode, String)> {
         let mut url = Self::create_base_url(Some(user_name))?.join("IsActive")?;
         url = Self::set_query(url);
-        let request = reqwest::get(url).await?;
+        let request = Self::send_request(url).await?;
         Ok((request.status(), request.text().await?))
     }
 
@@ -76,7 +84,7 @@ impl Instance {
         let mut url = Self::create_base_url(Some(user_name))?.join("Logbook")?;
         url = Self::set_query(url);
         println!("Sending admin request to {url:?}");
-        let request = reqwest::get(url).await?;
+        let request = Self::send_request(url).await?;
         Ok((request.status(), request.text().await?))
     }
 }

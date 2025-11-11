@@ -1,7 +1,8 @@
 use entity::{user_data, user_properties};
 use sea_orm::ActiveValue::{NotSet, Set};
 // type UserPropertiesModel = user_properties::Model;
-use crate::{GenResult, add_new_user_to_db, encode_password, update_user_in_db};
+use crate::{GenResult, add_new_user_to_db, encode_password};
+use sea_orm::ActiveModelTrait;
 use sea_orm::{ColumnTrait, IntoActiveModel};
 use sea_orm::{DatabaseConnection, DerivePartialModel, EntityTrait, QueryFilter};
 use serde::{Deserialize, Serialize};
@@ -15,8 +16,11 @@ pub struct MijnBussieUser {
     pub user_data_id: i32,
     #[serde(default)]
     pub user_name: String,
+    #[serde(skip_serializing, default)]
     pub personeelsnummer: String,
+    #[serde(skip_serializing, default)]
     pub password: String,
+    #[serde(skip_serializing, default)]
     pub email: String,
     #[sea_orm(nested)]
     pub user_properties: user_properties::Model,
@@ -38,6 +42,7 @@ impl MijnBussieUser {
     pub async fn find_by_username(db: &DatabaseConnection, user_name: &str) -> Option<Self> {
         user_data::Entity::find()
             .filter(user_data::Column::UserName.eq(user_name))
+            .left_join(user_properties::Entity)
             .into_partial_model::<Self>()
             .one(db)
             .await
@@ -49,7 +54,6 @@ impl MijnBussieUser {
         self,
         db: &DatabaseConnection,
         custom_username: bool,
-        update: bool,
     ) -> GenResult<UserDataModel> {
         // Remove leading 0's from
         let user_name = if custom_username && !self.user_name.is_empty() {
@@ -64,11 +68,7 @@ impl MijnBussieUser {
         user_properties.execution_minute = Set(execution_time);
 
         let user_data = user_data::ActiveModel {
-            user_data_id: if update {
-                Set(self.user_data_id)
-            } else {
-                NotSet
-            },
+            user_data_id: NotSet,
             user_name: Set(user_name),
             personeelsnummer: Set(encode_password(self.personeelsnummer)),
             password: Set(encode_password(self.password)),
@@ -77,11 +77,16 @@ impl MijnBussieUser {
             user_properties: NotSet,
             custom_general_properties: NotSet,
         };
-        if update {
-            update_user_in_db(db, user_properties, user_data).await
-        } else {
-            add_new_user_to_db(db, user_properties, user_data).await
-        }
+        add_new_user_to_db(db, user_properties, user_data).await
+    }
+
+    pub async fn update_properties(self, db: &DatabaseConnection) -> GenResult<()> {
+        let properties = self.user_properties.into_active_model().reset_all();
+        user_properties::Entity::update(properties)
+            .validate()?
+            .exec(db)
+            .await?;
+        Ok(())
     }
 }
 

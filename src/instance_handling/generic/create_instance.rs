@@ -16,7 +16,7 @@ pub mod post {
         user: &UserAccount,
         instance: MijnBussieUser,
     ) -> GenResult<impl IntoResponse> {
-        let response = match MijnBussieUser::create_and_insert_models(instance, db, false, false)
+        let response = match MijnBussieUser::create_and_insert_models(instance, db, false)
             .and_then(|data| async move { attach_user_to_instance(db, user, &data).await })
             .await
         {

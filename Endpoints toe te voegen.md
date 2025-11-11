@@ -41,7 +41,7 @@ __/Instance__
     
 * /Instance/Update **!**
     Los voor email, en los voor user_properties
-* /Instance/Get
+* /Instance/Get ✅
     Zorgen dat hier gevoelige data uit wordt verwijderd
 * /Instance/AddFromPath **!**
     Range Beperken

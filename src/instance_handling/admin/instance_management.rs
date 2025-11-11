@@ -14,6 +14,10 @@ pub fn router() -> Router<Api> {
             "/assign_instance",
             post(self::post::assign_instance_to_account),
         )
+        .route(
+            "/update_properties",
+            post(self::post::update_properties_admin),
+        )
 }
 
 mod get {
@@ -41,10 +45,14 @@ mod get {
                     serde_json::to_string_pretty(&instance_data).unwrap(),
                 )
                     .into_response(),
-                None => StatusCode::NOT_FOUND.into_response(),
+                None => (
+                    StatusCode::NOT_FOUND,
+                    format!("Could not find user_data from \"{instance_name}\""),
+                )
+                    .into_response(),
             }
         } else {
-            StatusCode::NOT_FOUND.into_response()
+            (StatusCode::NOT_FOUND, "Could not get instance name").into_response()
         }
     }
 }
@@ -69,6 +77,17 @@ mod post {
         web::api::Api,
     };
 
+    pub async fn update_properties_admin(
+        State(data): State<Api>,
+        Json(instance): Json<MijnBussieUser>,
+    ) -> impl IntoResponse {
+        let db = &data.db;
+        match instance.update_properties(db).await {
+            Ok(_) => StatusCode::OK.into_response(),
+            Err(err) => (StatusCode::INTERNAL_SERVER_ERROR, err.to_string()).into_response(),
+        }
+    }
+
     pub async fn create_instance_admin(
         State(data): State<Api>,
         Query(user): Query<AdminQuery>,
@@ -81,7 +100,7 @@ mod post {
                 return (StatusCode::NOT_FOUND, "User not found").into_response();
             }
         };
-        match MijnBussieUser::create_and_insert_models(instance, db, true, false).await {
+        match MijnBussieUser::create_and_insert_models(instance, db, true).await {
             Ok(_) => StatusCode::OK.into_response(),
             Err(err) => (StatusCode::INTERNAL_SERVER_ERROR, err.to_string()).into_response(),
         }

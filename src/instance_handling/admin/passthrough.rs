@@ -39,7 +39,10 @@ mod get {
         let instance_name = user.get_instance_name(&data.db).await;
         match instance_api::Instance::get_logbook(&instance_name.unwrap_or_default()).await {
             Ok(respone) => respone,
-            Err(err) => (StatusCode::INTERNAL_SERVER_ERROR, err.to_string()),
+            Err(err) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                err.source().unwrap().to_string(),
+            ),
         }
         .into_response()
     }
