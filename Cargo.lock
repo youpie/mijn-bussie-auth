@@ -1615,6 +1615,7 @@ dependencies = [
  "dotenvy",
  "entity",
  "futures",
+ "hyper",
  "random_str",
  "reqwest",
  "rustls",
