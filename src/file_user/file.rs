@@ -19,23 +19,37 @@ pub fn load_user(
     let filename = env_map.var("RANDOM_FILENAME").ok();
     let cycle_time = env_map
         .var("CYCLE_TIME")
-        .unwrap_or(
-            (env_map
-                .var("KUMA_HEARTBEAT_INTERVAL")?
-                .parse::<i32>()
-                .unwrap()
-                - 400)
-                .to_string(),
-        )
-        .parse::<i32>()?;
+        .unwrap_or((env_map.var("KUMA_HEARTBEAT_INTERVAL")?.parse::<i32>()? - 500).to_string())
+        .parse::<i32>()?
+        / 60;
     let email_to = env_map.var("MAIL_TO")?;
-    let new_shift = str_to_bool(env_map.var("SEND_EMAIL_NEW_SHIFT")?);
-    let updated_shift = str_to_bool(env_map.var("SEND_MAIL_UPDATED_SHIFT")?);
+    let new_shift = str_to_bool(
+        env_map
+            .var("SEND_EMAIL_NEW_SHIFT")
+            .unwrap_or("true".to_owned()),
+    );
+    let updated_shift = str_to_bool(
+        env_map
+            .var("SEND_MAIL_UPDATED_SHIFT")
+            .unwrap_or("true".to_owned()),
+    );
     let removed_shift = updated_shift;
-    let failed_signin = str_to_bool(env_map.var("SEND_MAIL_SIGNIN_FAILED")?);
-    let welcome_mail = str_to_bool(env_map.var("SEND_WELCOME_MAIL")?);
-    let error_mail = str_to_bool(env_map.var("SEND_ERROR_MAIL")?);
-    let split_night_shift = str_to_bool(env_map.var("BREAK_UP_NIGHT_SHIFT")?);
+    let failed_signin = str_to_bool(
+        env_map
+            .var("SEND_MAIL_SIGNIN_FAILED")
+            .unwrap_or("true".to_owned()),
+    );
+    let welcome_mail = str_to_bool(
+        env_map
+            .var("SEND_WELCOME_MAIL")
+            .unwrap_or("true".to_owned()),
+    );
+    let error_mail = str_to_bool(env_map.var("SEND_ERROR_MAIL").unwrap_or("false".to_owned()));
+    let split_night_shift = str_to_bool(
+        env_map
+            .var("BREAK_UP_NIGHT_SHIFT")
+            .unwrap_or("true".to_owned()),
+    );
     let stop_night_shift = str_to_bool(
         env_map
             .var("STOP_SHIFT_AT_MIDNIGHT")
@@ -60,9 +74,9 @@ pub fn load_user(
     };
     let user_data = user_data::ActiveModel {
         user_name: Set(username.clone()),
-        personeelsnummer: Set(username.clone()),
+        personeelsnummer: Set(encode_password(username.clone())),
         password: Set(encode_password(password)),
-        email: Set(email_to),
+        email: Set(encode_password(email_to)),
         file_name: Set(filename.unwrap_or(username)),
         user_properties: NotSet,
         ..Default::default()
