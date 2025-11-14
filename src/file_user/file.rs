@@ -7,7 +7,7 @@ use sea_orm::ActiveValue::{NotSet, Set};
 use crate::{GenResult, encode_password};
 
 pub fn load_user(
-    path: PathBuf,
+    path: &PathBuf,
 ) -> GenResult<(user_properties::ActiveModel, user_data::ActiveModel)> {
     let mut env_path = path.clone();
     env_path.push(".env");
@@ -35,7 +35,7 @@ pub fn load_user(
     let error_mail = str_to_bool(var("SEND_ERROR_MAIL")?);
     let split_night_shift = str_to_bool(var("BREAK_UP_NIGHT_SHIFT")?);
     let stop_night_shift = str_to_bool(var("STOP_SHIFT_AT_MIDNIGHT").unwrap_or("false".to_owned()));
-    let mut execution_min_path = path;
+    let mut execution_min_path = path.clone();
     execution_min_path.push("kuma");
     execution_min_path.push("starting_minute");
     let execution_min = std::fs::read_to_string(execution_min_path)

@@ -1,4 +1,7 @@
-use axum::{Router, routing::get};
+use axum::{
+    Router,
+    routing::{get, post},
+};
 
 use crate::{
     instance_handling::admin::db::get::{get_all_instances, get_all_users},
@@ -9,6 +12,7 @@ pub fn router() -> Router<Api> {
     Router::new()
         .route("/instances", get(get_all_instances))
         .route("/users", get(get_all_users))
+        .route("/import_user", post(self::post::import_user))
 }
 
 mod get {
@@ -43,5 +47,40 @@ mod get {
         } else {
             StatusCode::INTERNAL_SERVER_ERROR.into_response()
         }
+    }
+}
+
+mod post {
+    use std::path::PathBuf;
+
+    use axum::{
+        extract::{Query, State},
+        response::IntoResponse,
+    };
+    use reqwest::StatusCode;
+    use serde::Deserialize;
+
+    use crate::{file_user::transfer::tranfer_user_from_path, web::api::Api};
+
+    #[derive(Deserialize)]
+    pub struct PathQuery {
+        path: PathBuf,
+    }
+
+    pub async fn import_user(
+        State(data): State<Api>,
+        Query(path): Query<PathQuery>,
+    ) -> impl IntoResponse {
+        match tranfer_user_from_path(&data.db, &path.path).await {
+            Ok(id) => (
+                StatusCode::OK,
+                format!(
+                    "Inserted user {} with ID {id}",
+                    path.path.file_stem().unwrap_or_default().to_string_lossy()
+                ),
+            ),
+            Err(error) => (StatusCode::INTERNAL_SERVER_ERROR, error.to_string()),
+        }
+        .into_response()
     }
 }
