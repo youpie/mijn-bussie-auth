@@ -758,6 +758,11 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1aaf95b3e5c8f23aa320147307562d361db0ae0d51242340f558153b4eb2439b"
 
 [[package]]
+name = "dotenvy"
+version = "0.15.7"
+source = "git+https://github.com/allan2/dotenvy.git#86c0d6dd2938e615135813df9e3274bf8f42c455"
+
+[[package]]
 name = "dunce"
 version = "1.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1612,7 +1617,7 @@ dependencies = [
  "axum-server",
  "base64",
  "bcrypt",
- "dotenvy",
+ "dotenvy 0.15.7 (git+https://github.com/allan2/dotenvy.git)",
  "entity",
  "futures",
  "hyper",
@@ -2806,7 +2811,7 @@ version = "0.8.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "19a9c1841124ac5a61741f96e1d9e2ec77424bf323962dd894bdb93f37d5219b"
 dependencies = [
- "dotenvy",
+ "dotenvy 0.15.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "either",
  "heck 0.5.0",
  "hex",
@@ -2840,7 +2845,7 @@ dependencies = [
  "chrono",
  "crc",
  "digest",
- "dotenvy",
+ "dotenvy 0.15.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "either",
  "futures-channel",
  "futures-core",
@@ -2885,7 +2890,7 @@ dependencies = [
  "byteorder",
  "chrono",
  "crc",
- "dotenvy",
+ "dotenvy 0.15.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "etcetera",
  "futures-channel",
  "futures-core",

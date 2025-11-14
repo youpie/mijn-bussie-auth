@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use dotenvy::var;
+use dotenvy::{EnvLoader, var};
 use entity::{user_data, user_properties};
 use sea_orm::ActiveValue::{NotSet, Set};
 
@@ -11,37 +11,40 @@ pub fn load_user(
 ) -> GenResult<(user_properties::ActiveModel, user_data::ActiveModel)> {
     let mut env_path = path.clone();
     env_path.push(".env");
-    dotenvy::from_filename_override(env_path)?;
-    let username = var("USERNAME")?;
-    let password = var("PASSWORD")?;
-    let filename = var("RANDOM_FILENAME").ok();
-    let cycle_time = var("CYCLE_TIME")
+
+    let env_map = EnvLoader::with_path(env_path).load()?;
+
+    let username = env_map.var("USERNAME")?;
+    let password = env_map.var("PASSWORD")?;
+    let filename = env_map.var("RANDOM_FILENAME").ok();
+    let cycle_time = env_map
+        .var("CYCLE_TIME")
         .unwrap_or(
-            (var("KUMA_HEARTBEAT_INTERVAL")
-                .unwrap()
+            (env_map
+                .var("KUMA_HEARTBEAT_INTERVAL")?
                 .parse::<i32>()
                 .unwrap()
                 - 400)
                 .to_string(),
         )
-        .parse::<i32>()
-        .unwrap();
-    let email_to = var("MAIL_TO")?;
-    let new_shift = str_to_bool(var("SEND_EMAIL_NEW_SHIFT")?);
-    let updated_shift = str_to_bool(var("SEND_MAIL_UPDATED_SHIFT")?);
+        .parse::<i32>()?;
+    let email_to = env_map.var("MAIL_TO")?;
+    let new_shift = str_to_bool(env_map.var("SEND_EMAIL_NEW_SHIFT")?);
+    let updated_shift = str_to_bool(env_map.var("SEND_MAIL_UPDATED_SHIFT")?);
     let removed_shift = updated_shift;
-    let failed_signin = str_to_bool(var("SEND_MAIL_SIGNIN_FAILED")?);
-    let welcome_mail = str_to_bool(var("SEND_WELCOME_MAIL")?);
-    let error_mail = str_to_bool(var("SEND_ERROR_MAIL")?);
-    let split_night_shift = str_to_bool(var("BREAK_UP_NIGHT_SHIFT")?);
-    let stop_night_shift = str_to_bool(var("STOP_SHIFT_AT_MIDNIGHT").unwrap_or("false".to_owned()));
+    let failed_signin = str_to_bool(env_map.var("SEND_MAIL_SIGNIN_FAILED")?);
+    let welcome_mail = str_to_bool(env_map.var("SEND_WELCOME_MAIL")?);
+    let error_mail = str_to_bool(env_map.var("SEND_ERROR_MAIL")?);
+    let split_night_shift = str_to_bool(env_map.var("BREAK_UP_NIGHT_SHIFT")?);
+    let stop_night_shift = str_to_bool(
+        env_map
+            .var("STOP_SHIFT_AT_MIDNIGHT")
+            .unwrap_or("false".to_owned()),
+    );
     let mut execution_min_path = path.clone();
     execution_min_path.push("kuma");
     execution_min_path.push("starting_minute");
-    let execution_min = std::fs::read_to_string(execution_min_path)
-        .unwrap()
-        .parse::<i32>()
-        .unwrap();
+    let execution_min = std::fs::read_to_string(execution_min_path)?.parse::<i32>()?;
     let user_properties = user_properties::ActiveModel {
         execution_interval_minutes: Set(cycle_time),
         execution_minute: Set(execution_min),
