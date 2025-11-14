@@ -4,8 +4,16 @@ use std::str::FromStr;
 
 use dotenvy::var;
 use reqwest::{Response, StatusCode, Url};
+use serde::Deserialize;
+use strum::{AsRefStr, EnumString};
 
 use crate::GenResult;
+
+#[derive(AsRefStr, EnumString, Deserialize)]
+pub enum KumaRequest {
+    Reset,
+    Delete,
+}
 
 pub struct Instance {}
 
@@ -27,6 +35,16 @@ impl Instance {
             "key={}",
             var("API_KEY").expect("API key not set")
         )));
+        Ok(url)
+    }
+
+    fn create_base_kuma_url(user_name: Option<&str>, request: KumaRequest) -> GenResult<Url> {
+        let mut url = Self::create_base_url(None)?.join("kuma/")?;
+        url = url.join(request.as_ref())?;
+        url = match user_name {
+            Some(user_name) => url.join(user_name)?,
+            None => url.join("all")?,
+        };
         Ok(url)
     }
 
@@ -85,5 +103,15 @@ impl Instance {
         url = Self::set_query(url);
         let request = Self::send_request(url).await?;
         Ok((request.status(), request.text().await?))
+    }
+
+    pub async fn kuma_request(
+        user_name: Option<&str>,
+        request: KumaRequest,
+    ) -> GenResult<StatusCode> {
+        let mut url = Self::create_base_kuma_url(user_name, request)?;
+        url = Self::set_query(url);
+        let request = Self::send_request(url).await?;
+        Ok(request.status())
     }
 }

@@ -18,6 +18,8 @@ pub fn router() -> Router<Api> {
         .route("/isactive", get(get_is_active))
         .route("/start", post(start_instance))
         .route("/refresh", post(refresh_instance))
+        .route("/kuma/{request}/{user}", post(self::post::handle_kuma))
+        .route("/kuma{request}", post(self::post::handle_kuma))
 }
 
 mod get {
@@ -74,13 +76,16 @@ mod get {
 
 mod post {
     use axum::{
-        extract::{Query, State},
+        extract::{Path, Query, State},
         response::IntoResponse,
     };
     use reqwest::StatusCode;
 
     use crate::{
-        instance_handling::{admin::AdminQuery, instance_api},
+        instance_handling::{
+            admin::AdminQuery,
+            instance_api::{self, Instance, KumaRequest},
+        },
         web::api::Api,
     };
 
@@ -106,5 +111,14 @@ mod post {
             Err(err) => (StatusCode::INTERNAL_SERVER_ERROR, err.to_string()),
         }
         .into_response()
+    }
+
+    pub async fn handle_kuma(
+        Path((request, user)): Path<(KumaRequest, Option<String>)>,
+    ) -> impl IntoResponse {
+        match Instance::kuma_request(user.as_deref(), request).await {
+            Ok(code) => code.into_response(),
+            Err(err) => (StatusCode::INTERNAL_SERVER_ERROR, err.to_string()).into_response(),
+        }
     }
 }
