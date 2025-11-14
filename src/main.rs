@@ -1,5 +1,5 @@
 use base64::{Engine, prelude::BASE64_STANDARD_NO_PAD};
-use dotenvy::{dotenv_override, var};
+use dotenvy::var;
 use entity::user_data::Model;
 use entity::{user_data, user_properties};
 use rustls::crypto::CryptoProvider;
@@ -15,9 +15,9 @@ mod web;
 type GenResult<T> = Result<T, GenError>;
 type GenError = Box<dyn std::error::Error + Send + Sync + 'static>;
 
+#[dotenvy::load(override_ = true)]
 #[tokio::main]
 async fn main() -> GenResult<()> {
-    dotenv_override().unwrap();
     CryptoProvider::install_default(default_provider()).unwrap();
     Api::new().await?.serve().await?;
     Ok(())
