@@ -4,14 +4,16 @@ use dotenvy::var;
 use entity::{user_data, user_properties};
 use sea_orm::ActiveValue::{NotSet, Set};
 
-use crate::encode_password;
+use crate::{GenResult, encode_password};
 
-pub fn load_user(path: PathBuf) -> (user_properties::ActiveModel, user_data::ActiveModel) {
+pub fn load_user(
+    path: PathBuf,
+) -> GenResult<(user_properties::ActiveModel, user_data::ActiveModel)> {
     let mut env_path = path.clone();
     env_path.push(".env");
-    dotenvy::from_filename_override(env_path).unwrap();
-    let username = var("USERNAME").unwrap();
-    let password = var("PASSWORD").unwrap();
+    dotenvy::from_filename_override(env_path)?;
+    let username = var("USERNAME")?;
+    let password = var("PASSWORD")?;
     let filename = var("RANDOM_FILENAME").ok();
     let cycle_time = var("CYCLE_TIME")
         .unwrap_or(
@@ -24,14 +26,14 @@ pub fn load_user(path: PathBuf) -> (user_properties::ActiveModel, user_data::Act
         )
         .parse::<i32>()
         .unwrap();
-    let email_to = var("MAIL_TO").unwrap();
-    let new_shift = str_to_bool(var("SEND_EMAIL_NEW_SHIFT").unwrap());
-    let updated_shift = str_to_bool(var("SEND_MAIL_UPDATED_SHIFT").unwrap());
+    let email_to = var("MAIL_TO")?;
+    let new_shift = str_to_bool(var("SEND_EMAIL_NEW_SHIFT")?);
+    let updated_shift = str_to_bool(var("SEND_MAIL_UPDATED_SHIFT")?);
     let removed_shift = updated_shift;
-    let failed_signin = str_to_bool(var("SEND_MAIL_SIGNIN_FAILED").unwrap());
-    let welcome_mail = str_to_bool(var("SEND_WELCOME_MAIL").unwrap());
-    let error_mail = str_to_bool(var("SEND_ERROR_MAIL").unwrap());
-    let split_night_shift = str_to_bool(var("BREAK_UP_NIGHT_SHIFT").unwrap());
+    let failed_signin = str_to_bool(var("SEND_MAIL_SIGNIN_FAILED")?);
+    let welcome_mail = str_to_bool(var("SEND_WELCOME_MAIL")?);
+    let error_mail = str_to_bool(var("SEND_ERROR_MAIL")?);
+    let split_night_shift = str_to_bool(var("BREAK_UP_NIGHT_SHIFT")?);
     let stop_night_shift = str_to_bool(var("STOP_SHIFT_AT_MIDNIGHT").unwrap_or("false".to_owned()));
     let mut execution_min_path = path;
     execution_min_path.push("kuma");
@@ -62,7 +64,7 @@ pub fn load_user(path: PathBuf) -> (user_properties::ActiveModel, user_data::Act
         user_properties: NotSet,
         ..Default::default()
     };
-    (user_properties, user_data)
+    Ok((user_properties, user_data))
 }
 
 fn str_to_bool(input: String) -> bool {

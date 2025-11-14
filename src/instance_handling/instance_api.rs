@@ -83,7 +83,6 @@ impl Instance {
     pub async fn get_logbook(user_name: &str) -> GenResult<(StatusCode, String)> {
         let mut url = Self::create_base_url(Some(user_name))?.join("Logbook")?;
         url = Self::set_query(url);
-        println!("Sending admin request to {url:?}");
         let request = Self::send_request(url).await?;
         Ok((request.status(), request.text().await?))
     }

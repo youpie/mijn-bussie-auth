@@ -1,5 +1,8 @@
+use std::{path::PathBuf, str::FromStr};
+
 use axum::Router;
 use axum_login::{AuthManagerLayerBuilder, login_required, permission_required};
+use axum_server::tls_rustls::RustlsConfig;
 use dotenvy::var;
 use sea_orm::{Database, DatabaseConnection, sqlx::PgPool};
 use tower_sessions::{Expiry, SessionManagerLayer, cookie::time::Duration};
@@ -39,6 +42,13 @@ impl Api {
             .with_secure(false)
             .with_expiry(Expiry::OnInactivity(Duration::days(1)));
 
+        let tls_config = RustlsConfig::from_pem_file(
+            PathBuf::from("cert").join("cert.crt"),
+            PathBuf::from("cert").join("key.key"),
+        )
+        .await
+        .expect("Missing certificate files");
+
         // Auth service.
         //
         // This combines the session layer with our backend to establish the auth
@@ -55,11 +65,15 @@ impl Api {
             .merge(new_user::router())
             .layer(auth_layer)
             .with_state(test);
+
         let port = var("API_PORT")?;
-        let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:{port}"))
-            .await
-            .unwrap();
-        axum::serve(listener, app.into_make_service()).await?;
+        axum_server::bind_rustls(
+            std::net::SocketAddr::from_str(&format!("0.0.0.0:{port}")).unwrap(),
+            tls_config,
+        )
+        .serve(app.into_make_service())
+        .await
+        .unwrap();
 
         Ok(())
     }
