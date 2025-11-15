@@ -11,9 +11,8 @@ pub fn router() -> Router<Api> {
 
 mod get {
     use axum::{Json, extract::State, response::IntoResponse};
-    use entity::user_data;
     use hyper::StatusCode;
-    use sea_orm::{DatabaseConnection, EntityTrait};
+    use sea_orm::DatabaseConnection;
 
     use crate::{GenResult, instance_handling::entity::MijnBussieUser, web::api::Api};
 
@@ -26,13 +25,10 @@ mod get {
     }
 
     async fn get_email_list_error(db: &DatabaseConnection) -> GenResult<Vec<String>> {
-        let all_users = user_data::Entity::find()
-            .into_partial_model::<MijnBussieUser>()
-            .all(db)
-            .await?;
+        let all_users = MijnBussieUser::get_all_users(db).await?;
         let email_list = all_users
             .iter()
-            .map(|user| user.get_email().unwrap_or("FOUT".to_owned()))
+            .filter_map(|user| user.get_email().ok())
             .collect();
         Ok(email_list)
     }
@@ -46,14 +42,11 @@ mod get {
     }
 
     async fn get_name_list_error(db: &DatabaseConnection) -> GenResult<Vec<String>> {
-        let all_users = user_data::Entity::find()
-            .into_partial_model::<MijnBussieUser>()
-            .all(db)
-            .await?;
-        let email_list = all_users
+        let all_users = MijnBussieUser::get_all_users(db).await?;
+        let name_list = all_users
             .iter()
             .filter_map(|user| user.get_name().ok())
             .collect();
-        Ok(email_list)
+        Ok(name_list)
     }
 }

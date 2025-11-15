@@ -26,7 +26,7 @@ pub struct MijnBussieUser {
     pub personeelsnummer: String,
     #[serde(skip_serializing, default)]
     pub password: String,
-    pub name: String,
+    pub name: Option<String>,
     #[serde(skip_serializing, default)]
     pub email: String,
     #[sea_orm(nested)]
@@ -34,7 +34,7 @@ pub struct MijnBussieUser {
 }
 
 impl MijnBussieUser {
-    pub async fn find_existing(
+    pub async fn get_id_from_personeelsnummer(
         db: &DatabaseConnection,
         personeelsnummer: &str,
     ) -> GenResult<Option<i32>> {
@@ -57,17 +57,29 @@ impl MijnBussieUser {
             .flatten()
     }
 
+    pub async fn get_all_users(db: &DatabaseConnection) -> GenResult<Vec<Self>> {
+        Ok(user_data::Entity::find()
+            .left_join(user_properties::Entity)
+            .into_partial_model::<Self>()
+            .all(db)
+            .await?)
+    }
+
+    /// **Wont deserialize name**
     pub fn _decrypt_values(&self) -> GenResult<Self> {
         let mut clone = self.clone();
         clone.email = decrypt_value(&self.email)?;
-        clone.name = decrypt_value(&self.name)?;
+        // clone.name = decrypt_value(&self.name)?;
         clone.password = decrypt_value(&self.password)?;
         clone.personeelsnummer = decrypt_value(&self.personeelsnummer)?;
         Ok(clone)
     }
 
     pub fn get_name(&self) -> GenResult<String> {
-        Ok(decrypt_value(&self.name)?)
+        match &self.name {
+            Some(name) => Ok(decrypt_value(name)?),
+            None => Err("Empty name".into()),
+        }
     }
 
     pub fn get_email(&self) -> GenResult<String> {

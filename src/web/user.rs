@@ -30,10 +30,12 @@ pub struct UserAccount {
 
 impl UserAccount {
     pub async fn add_user(db: &DatabaseConnection, creds: Credentials) -> GenResult<()> {
+        let password_hash =
+            tokio::task::spawn_blocking(|| bcrypt::hash(creds.password, DEFAULT_COST)).await??;
         let account = user_account::ActiveModel {
             account_id: NotSet,
             username: Set(creds.username),
-            password_hash: Set(bcrypt::hash(creds.password, DEFAULT_COST)?),
+            password_hash: Set(password_hash),
             role: Set("User".to_owned()),
             backend_user: NotSet,
         };

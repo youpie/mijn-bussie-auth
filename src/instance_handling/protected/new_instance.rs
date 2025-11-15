@@ -36,7 +36,7 @@ mod post {
         };
 
         // If personeelsnummer already exists, don't create this instance
-        if MijnBussieUser::find_existing(db, &instance.personeelsnummer)
+        if MijnBussieUser::get_id_from_personeelsnummer(db, &instance.personeelsnummer)
             .await
             .ok()
             .is_some()
