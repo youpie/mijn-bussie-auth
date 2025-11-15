@@ -19,7 +19,7 @@ pub fn router() -> Router<Api> {
         .route("/start", post(start_instance))
         .route("/refresh", post(refresh_instance))
         .route("/kuma/{request}/{user}", post(self::post::handle_kuma))
-        .route("/kuma{request}", post(self::post::handle_kuma))
+        .route("/kuma/{request}", post(self::post::handle_kuma))
 }
 
 mod get {

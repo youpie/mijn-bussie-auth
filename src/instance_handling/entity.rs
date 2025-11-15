@@ -1,7 +1,7 @@
 use entity::{user_data, user_properties};
 use sea_orm::ActiveValue::{NotSet, Set};
 // type UserPropertiesModel = user_properties::Model;
-use crate::{GenResult, add_new_user_to_db, encode_password};
+use crate::{GenResult, add_new_user_to_db, decrypt_value, encrypt_value};
 use sea_orm::ActiveModelTrait;
 use sea_orm::{ColumnTrait, IntoActiveModel};
 use sea_orm::{DatabaseConnection, DerivePartialModel, EntityTrait, QueryFilter};
@@ -9,7 +9,13 @@ use serde::{Deserialize, Serialize};
 
 pub type UserDataModel = user_data::Model;
 
-#[derive(Debug, DerivePartialModel, Deserialize, Serialize)]
+/// Encrypted values:
+///
+/// * Personeelsnummer
+/// * Password
+/// * Email
+/// * Name
+#[derive(Debug, DerivePartialModel, Deserialize, Serialize, Clone)]
 #[sea_orm(entity = "entity::user_data::Entity")]
 pub struct MijnBussieUser {
     #[serde(default)]
@@ -20,6 +26,7 @@ pub struct MijnBussieUser {
     pub personeelsnummer: String,
     #[serde(skip_serializing, default)]
     pub password: String,
+    pub name: String,
     #[serde(skip_serializing, default)]
     pub email: String,
     #[sea_orm(nested)]
@@ -50,6 +57,23 @@ impl MijnBussieUser {
             .flatten()
     }
 
+    pub fn _decrypt_values(&self) -> GenResult<Self> {
+        let mut clone = self.clone();
+        clone.email = decrypt_value(&self.email)?;
+        clone.name = decrypt_value(&self.name)?;
+        clone.password = decrypt_value(&self.password)?;
+        clone.personeelsnummer = decrypt_value(&self.personeelsnummer)?;
+        Ok(clone)
+    }
+
+    pub fn get_name(&self) -> GenResult<String> {
+        Ok(decrypt_value(&self.name)?)
+    }
+
+    pub fn get_email(&self) -> GenResult<String> {
+        Ok(decrypt_value(&self.email)?)
+    }
+
     pub async fn create_and_insert_models(
         self,
         db: &DatabaseConnection,
@@ -70,12 +94,13 @@ impl MijnBussieUser {
         let user_data = user_data::ActiveModel {
             user_data_id: NotSet,
             user_name: Set(user_name),
-            personeelsnummer: Set(encode_password(self.personeelsnummer)),
-            password: Set(encode_password(self.password)),
-            email: Set(encode_password(self.email)),
+            personeelsnummer: Set(encrypt_value(self.personeelsnummer)?),
+            password: Set(encrypt_value(self.password)?),
+            email: Set(encrypt_value(self.email)?),
             file_name: Set(random_filename),
             user_properties: NotSet,
             custom_general_properties: NotSet,
+            name: NotSet,
         };
         add_new_user_to_db(db, user_properties, user_data).await
     }

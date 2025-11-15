@@ -13,6 +13,7 @@ pub struct Model {
     pub personeelsnummer: String,
     pub password: String,
     pub email: String,
+    pub name: Option<String>,
     pub file_name: String,
     pub user_properties: i32,
     pub custom_general_properties: Option<i32>,

@@ -9,10 +9,11 @@ use strum::{AsRefStr, EnumString};
 
 use crate::GenResult;
 
+#[allow(nonstandard_style)]
 #[derive(AsRefStr, EnumString, Deserialize)]
 pub enum KumaRequest {
-    Reset,
-    Delete,
+    reset,
+    delete,
 }
 
 pub struct Instance {}

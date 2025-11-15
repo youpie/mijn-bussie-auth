@@ -23,11 +23,26 @@ async fn main() -> GenResult<()> {
     Ok(())
 }
 
-fn encode_password(password: String) -> String {
+fn encrypt_value(password: String) -> GenResult<String> {
     let secret = var("PASSWORD_SECRET").expect("No password secret set");
-    BASE64_STANDARD_NO_PAD.encode(
-        simplestcrypt::encrypt_and_serialize(secret.as_bytes(), password.as_bytes()).unwrap(),
-    )
+    Ok(BASE64_STANDARD_NO_PAD.encode(
+        simplestcrypt::encrypt_and_serialize(secret.as_bytes(), password.as_bytes())
+            .ok()
+            .result_reason("Could not encrpyt password")?,
+    ))
+}
+
+fn decrypt_value(encrypted_value: &str) -> GenResult<String> {
+    let secret_string = var("PASSWORD_SECRET")?;
+    let secret = secret_string.as_bytes();
+    Ok(String::from_utf8(
+        simplestcrypt::deserialize_and_decrypt(
+            secret,
+            &BASE64_STANDARD_NO_PAD.decode(encrypted_value)?,
+        )
+        .ok()
+        .result_reason("Could not deserialize password")?,
+    )?)
 }
 
 async fn add_new_user_to_db(
@@ -47,15 +62,22 @@ async fn add_new_user_to_db(
     Ok(data_res)
 }
 
-async fn update_user_in_db(
-    db: &DatabaseConnection,
-    user_properties: user_properties::ActiveModel,
-    user_data: user_data::ActiveModel,
-) -> GenResult<Model> {
-    user_properties::Entity::update(user_properties)
-        .exec(db)
-        .await?;
+pub trait OptionResult<T> {
+    fn result(self) -> GenResult<T>;
+    fn result_reason(self, reason: &str) -> GenResult<T>;
+}
 
-    let data_res = user_data::Entity::update(user_data).exec(db).await?;
-    Ok(data_res)
+impl<T> OptionResult<T> for Option<T> {
+    fn result(self) -> GenResult<T> {
+        match self {
+            Some(value) => Ok(value),
+            None => Err("Option Unwrap".into()),
+        }
+    }
+    fn result_reason(self, reason: &str) -> GenResult<T> {
+        match self {
+            Some(value) => Ok(value),
+            None => Err(reason.into()),
+        }
+    }
 }

@@ -1,5 +1,5 @@
 mod admin;
-mod entity;
+pub mod entity;
 mod generic;
 mod instance_api;
 mod protected;

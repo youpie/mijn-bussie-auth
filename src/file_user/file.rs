@@ -1,10 +1,10 @@
 use std::path::PathBuf;
 
-use dotenvy::{EnvLoader, var};
+use dotenvy::EnvLoader;
 use entity::{user_data, user_properties};
 use sea_orm::ActiveValue::{NotSet, Set};
 
-use crate::{GenResult, encode_password};
+use crate::{GenResult, encrypt_value};
 
 pub fn load_user(
     path: &PathBuf,
@@ -74,9 +74,9 @@ pub fn load_user(
     };
     let user_data = user_data::ActiveModel {
         user_name: Set(username.clone()),
-        personeelsnummer: Set(encode_password(username.clone())),
-        password: Set(encode_password(password)),
-        email: Set(encode_password(email_to)),
+        personeelsnummer: Set(encrypt_value(username.clone())?),
+        password: Set(encrypt_value(password)?),
+        email: Set(encrypt_value(email_to)?),
         file_name: Set(filename.unwrap_or(username)),
         user_properties: NotSet,
         ..Default::default()
