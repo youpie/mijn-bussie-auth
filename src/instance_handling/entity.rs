@@ -106,9 +106,9 @@ impl MijnBussieUser {
         let user_data = user_data::ActiveModel {
             user_data_id: NotSet,
             user_name: Set(user_name),
-            personeelsnummer: Set(encrypt_value(self.personeelsnummer)?),
-            password: Set(encrypt_value(self.password)?),
-            email: Set(encrypt_value(self.email)?),
+            personeelsnummer: Set(encrypt_value(&self.personeelsnummer)?),
+            password: Set(encrypt_value(&self.password)?),
+            email: Set(encrypt_value(&self.email)?),
             file_name: Set(random_filename),
             user_properties: NotSet,
             custom_general_properties: NotSet,
@@ -129,10 +129,6 @@ impl MijnBussieUser {
 
 pub trait FindByUsername {
     async fn find_by_username(db: &DatabaseConnection, user_name: &str) -> Option<UserDataModel>;
-    async fn find_by_username_result(
-        db: &DatabaseConnection,
-        user_name: &str,
-    ) -> GenResult<UserDataModel>;
 }
 
 impl FindByUsername for user_data::Model {
@@ -143,15 +139,5 @@ impl FindByUsername for user_data::Model {
             .await
             .ok()
             .flatten()
-    }
-
-    async fn find_by_username_result(
-        db: &DatabaseConnection,
-        user_name: &str,
-    ) -> GenResult<UserDataModel> {
-        match Self::find_by_username(db, user_name).await {
-            Some(value) => Ok(value),
-            None => Err("None".into()),
-        }
     }
 }

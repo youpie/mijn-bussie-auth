@@ -11,7 +11,7 @@ mod get {
     use reqwest::StatusCode;
 
     use crate::{
-        instance_handling::{admin::passthrough::InstanceGetRequests, instance_api},
+        instance_handling::instance_api::{self, InstanceGetRequests},
         web::user::{AuthSession, GetUser},
     };
 

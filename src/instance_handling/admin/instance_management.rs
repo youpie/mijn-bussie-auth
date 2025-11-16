@@ -37,22 +37,23 @@ mod get {
         State(data): State<Api>,
     ) -> impl IntoResponse {
         let db = &data.db;
-        let user_instance = user.get_instance_name(db).await;
-        if let Some(instance_name) = user_instance {
-            match MijnBussieUser::find_by_username(db, &instance_name).await {
-                Some(instance_data) => (
-                    StatusCode::OK,
-                    serde_json::to_string_pretty(&instance_data).unwrap(),
-                )
-                    .into_response(),
-                None => (
-                    StatusCode::NOT_FOUND,
-                    format!("Could not find user_data from \"{instance_name}\""),
-                )
-                    .into_response(),
-            }
-        } else {
-            (StatusCode::NOT_FOUND, "Could not get instance name").into_response()
+        let instance_name =
+            match AdminQuery::map_instance_query_result(user.get_instance_name(db).await) {
+                Ok(name) => name,
+                Err(names) => return names.into_response(),
+            };
+
+        match MijnBussieUser::find_by_username(db, &instance_name).await {
+            Some(instance_data) => (
+                StatusCode::OK,
+                serde_json::to_string_pretty(&instance_data).unwrap(),
+            )
+                .into_response(),
+            None => (
+                StatusCode::NOT_FOUND,
+                format!("Could not find user_data from \"{instance_name}\""),
+            )
+                .into_response(),
         }
     }
 }

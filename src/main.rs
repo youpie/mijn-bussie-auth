@@ -23,7 +23,7 @@ async fn main() -> GenResult<()> {
     Ok(())
 }
 
-fn encrypt_value(password: String) -> GenResult<String> {
+fn encrypt_value(password: &str) -> GenResult<String> {
     let secret = var("PASSWORD_SECRET").expect("No password secret set");
     Ok(BASE64_STANDARD_NO_PAD.encode(
         simplestcrypt::encrypt_and_serialize(secret.as_bytes(), password.as_bytes())

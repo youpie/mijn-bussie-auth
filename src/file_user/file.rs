@@ -74,9 +74,9 @@ pub fn load_user(
     };
     let user_data = user_data::ActiveModel {
         user_name: Set(username.clone()),
-        personeelsnummer: Set(encrypt_value(username.clone())?),
-        password: Set(encrypt_value(password)?),
-        email: Set(encrypt_value(email_to)?),
+        personeelsnummer: Set(encrypt_value(&username)?),
+        password: Set(encrypt_value(&password)?),
+        email: Set(encrypt_value(&email_to)?),
         file_name: Set(filename.unwrap_or(username)),
         user_properties: NotSet,
         ..Default::default()

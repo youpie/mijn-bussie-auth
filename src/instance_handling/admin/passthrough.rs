@@ -2,8 +2,6 @@ use axum::{
     Router,
     routing::{get, post},
 };
-use serde::Deserialize;
-use strum::AsRefStr;
 
 use crate::{
     instance_handling::admin::passthrough::{
@@ -22,18 +20,6 @@ pub fn router() -> Router<Api> {
         .route("/kuma/{request}", post(self::post::handle_kuma))
 }
 
-#[derive(Debug, Deserialize, AsRefStr)]
-pub enum InstanceGetRequests {
-    Logbook,
-    IsActive,
-    ExitCode,
-}
-
-#[derive(Debug, Deserialize, AsRefStr)]
-pub enum InstancePostRequests {
-    Start,
-}
-
 mod get {
     use axum::{
         extract::{Path, Query, State},
@@ -43,8 +29,8 @@ mod get {
 
     use crate::{
         instance_handling::{
-            admin::{AdminQuery, passthrough::InstanceGetRequests},
-            instance_api,
+            admin::AdminQuery,
+            instance_api::{self, InstanceGetRequests},
         },
         web::api::Api,
     };
@@ -54,10 +40,13 @@ mod get {
         Path(request_type): Path<InstanceGetRequests>,
         Query(user): Query<AdminQuery>,
     ) -> impl IntoResponse {
-        let instance_name = user.get_instance_name(&data.db).await;
-        match instance_api::Instance::get_request(&instance_name.unwrap_or_default(), request_type)
-            .await
-        {
+        let db = &data.db;
+        let instance_name =
+            match AdminQuery::map_instance_query_result(user.get_instance_name(db).await) {
+                Ok(name) => name,
+                Err(names) => return names.into_response(),
+            };
+        match instance_api::Instance::get_request(&instance_name, request_type).await {
             Ok(respone) => respone,
             Err(err) => (StatusCode::INTERNAL_SERVER_ERROR, err.to_string()),
         }
@@ -74,8 +63,8 @@ mod post {
 
     use crate::{
         instance_handling::{
-            admin::{AdminQuery, passthrough::InstancePostRequests},
-            instance_api::{self, Instance, KumaRequest},
+            admin::AdminQuery,
+            instance_api::{self, Instance, InstancePostRequests, KumaRequest},
         },
         web::api::Api,
     };
@@ -85,10 +74,13 @@ mod post {
         Path(request_type): Path<InstancePostRequests>,
         Query(user): Query<AdminQuery>,
     ) -> impl IntoResponse {
-        let instance_name = user.get_instance_name(&data.db).await;
-        match instance_api::Instance::post_request(&instance_name.unwrap_or_default(), request_type)
-            .await
-        {
+        let db = &data.db;
+        let instance_name =
+            match AdminQuery::map_instance_query_result(user.get_instance_name(db).await) {
+                Ok(name) => name,
+                Err(names) => return names.into_response(),
+            };
+        match instance_api::Instance::post_request(&instance_name, request_type).await {
             Ok(response) => response,
             Err(err) => (StatusCode::INTERNAL_SERVER_ERROR, err.to_string()),
         }
@@ -100,10 +92,14 @@ mod post {
         Query(user): Query<Option<AdminQuery>>,
     ) -> impl IntoResponse {
         let instance_name = if let Some(query) = user {
-            query.get_instance_name(&data.db).await
+            match AdminQuery::map_instance_query_result(query.get_instance_name(&data.db).await) {
+                Ok(name) => Some(name),
+                Err(err) => return err.into_response(),
+            }
         } else {
             None
         };
+
         match instance_api::Instance::refresh_user(instance_name.as_deref()).await {
             Ok(started) => (StatusCode::OK, started.to_string()),
             Err(err) => (StatusCode::INTERNAL_SERVER_ERROR, err.to_string()),

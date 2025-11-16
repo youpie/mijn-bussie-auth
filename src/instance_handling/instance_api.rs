@@ -7,16 +7,25 @@ use reqwest::{Response, StatusCode, Url};
 use serde::Deserialize;
 use strum::{AsRefStr, EnumString};
 
-use crate::{
-    GenResult,
-    instance_handling::admin::passthrough::{InstanceGetRequests, InstancePostRequests},
-};
+use crate::GenResult;
 
 #[allow(nonstandard_style)]
 #[derive(AsRefStr, EnumString, Deserialize)]
 pub enum KumaRequest {
     reset,
     delete,
+}
+
+#[derive(Debug, Deserialize, AsRefStr)]
+pub enum InstanceGetRequests {
+    Logbook,
+    IsActive,
+    ExitCode,
+}
+
+#[derive(Debug, Deserialize, AsRefStr)]
+pub enum InstancePostRequests {
+    Start,
 }
 
 pub struct Instance {}

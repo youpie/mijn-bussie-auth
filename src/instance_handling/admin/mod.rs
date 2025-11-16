@@ -1,10 +1,11 @@
-use entity::user_account;
-use futures::TryFutureExt;
+use axum::Json;
+use entity::{user_account, user_data};
+use hyper::StatusCode;
 use sea_orm::{DatabaseConnection, EntityTrait, QueryFilter, Related};
 use serde::Deserialize;
 
 use crate::{
-    GenResult,
+    encrypt_value,
     instance_handling::entity::{FindByUsername, UserDataModel},
     web::user::UserAccount,
 };
@@ -18,6 +19,8 @@ pub mod passthrough;
 pub struct AdminQuery {
     pub account_name: Option<String>,
     pub instance_name: Option<String>,
+    pub email: Option<String>,
+    pub name: Option<String>,
 }
 
 impl AdminQuery {
@@ -51,26 +54,87 @@ impl AdminQuery {
         }
     }
 
-    pub async fn get_instance_name(&self, db: &DatabaseConnection) -> Option<String> {
-        let instance = self.get_instance_from_account_name(db).await;
-        if let Some(instance_model) = instance {
-            Some(instance_model.user_name.clone())
+    // Multiple instances can have the same email, so a vec should be returned
+    pub async fn get_instance_from_email(
+        &self,
+        db: &DatabaseConnection,
+    ) -> Option<Vec<UserDataModel>> {
+        if let Some(email) = &self.email
+            && let Ok(email_encrypted) = encrypt_value(email)
+        {
+            user_data::Entity::find()
+                .filter(user_data::Column::Email.eq(&email_encrypted))
+                .all(db)
+                .await
+                .ok()
         } else {
-            self.instance_name.clone()
+            None
         }
     }
 
-    async fn get_instance_name_result(&self, db: &DatabaseConnection) -> GenResult<String> {
-        match self.get_instance_name(db).await {
-            Some(value) => Ok(value),
-            None => Err("None".into()),
+    // Multiple instances can have the same email, so a vec should be returned
+    pub async fn get_instance_from_name(
+        &self,
+        db: &DatabaseConnection,
+    ) -> Option<Vec<UserDataModel>> {
+        if let Some(name) = &self.name
+            && let Ok(name_encrypted) = encrypt_value(&name)
+        {
+            user_data::Entity::find()
+                .filter(user_data::Column::Name.eq(&name_encrypted))
+                .all(db)
+                .await
+                .ok()
+        } else {
+            None
+        }
+    }
+
+    pub async fn get_instance_name(&self, db: &DatabaseConnection) -> Vec<String> {
+        let instance = self.get_instance_from_account_name(db).await;
+        if let Some(instance_model) = instance {
+            vec![instance_model.user_name.clone()]
+        } else if let Some(email_accounts) = self.get_instance_from_email(db).await {
+            let email_users = email_accounts
+                .iter()
+                .map(|user| user.user_name.clone())
+                .collect();
+            email_users
+        } else if let Some(name_accounts) = self.get_instance_from_name(db).await {
+            let name_users = name_accounts
+                .iter()
+                .map(|user| user.user_name.clone())
+                .collect();
+            name_users
+        } else {
+            self.instance_name
+                .clone()
+                .map_or(vec![], |users| vec![users])
+        }
+    }
+
+    pub fn map_instance_query_result(
+        mut names: Vec<String>,
+    ) -> Result<String, (StatusCode, Json<Vec<String>>)> {
+        if names.len() == 1
+            && let Some(instance_name) = names.pop()
+        {
+            Ok(instance_name)
+        } else if names.is_empty() {
+            Err((StatusCode::NOT_FOUND, Json(names)))
+        } else {
+            Err((StatusCode::CONFLICT, Json(names)))
         }
     }
 
     pub async fn get_instance_from_query(&self, db: &DatabaseConnection) -> Option<UserDataModel> {
-        self.get_instance_name_result(db)
-            .and_then(|name| async move { UserDataModel::find_by_username_result(db, &name).await })
-            .await
-            .ok()
+        let instance_name = match Self::map_instance_query_result(self.get_instance_name(db).await)
+        {
+            Ok(name) => name,
+            Err(_) => {
+                return None;
+            }
+        };
+        UserDataModel::find_by_username(db, &instance_name).await
     }
 }

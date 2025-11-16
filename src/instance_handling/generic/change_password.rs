@@ -19,7 +19,7 @@ pub mod post {
     ) -> GenResult<impl IntoResponse> {
         let user_name = instance.user_name.clone();
         let mut instance_data = instance.clone().into_active_model();
-        instance_data.password = Set(encrypt_value(new_password.password.clone())?);
+        instance_data.password = Set(encrypt_value(&new_password.password.clone())?);
         user_data::Entity::update(instance_data).exec(db).await?;
         Instance::refresh_user(Some(&user_name)).await?;
         Ok(StatusCode::OK.into_response())
