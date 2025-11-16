@@ -7,7 +7,10 @@ use reqwest::{Response, StatusCode, Url};
 use serde::Deserialize;
 use strum::{AsRefStr, EnumString};
 
-use crate::GenResult;
+use crate::{
+    GenResult,
+    instance_handling::admin::passthrough::{InstanceGetRequests, InstancePostRequests},
+};
 
 #[allow(nonstandard_style)]
 #[derive(AsRefStr, EnumString, Deserialize)]
@@ -64,43 +67,31 @@ impl Instance {
         url
     }
 
-    pub async fn refresh_user(user_name: &str) -> GenResult<bool> {
-        let mut url = Self::create_base_url(None)?
-            .join("refresh/")?
-            .join(user_name)?;
+    pub async fn refresh_user(user_name: Option<&str>) -> GenResult<bool> {
+        let mut url = Self::create_base_url(None)?.join("refresh/")?;
+        if let Some(user_name) = user_name {
+            url = url.join(user_name)?;
+        }
+
         url = Self::set_query(url);
         Ok(Self::verify_response(Self::send_request(url).await?))
     }
 
-    pub async fn start_user(user_name: &str) -> GenResult<bool> {
-        let mut url = Self::create_base_url(Some(user_name))?.join("start")?;
-        url = Self::set_query(url);
-        Ok(Self::verify_response(Self::send_request(url).await?))
-    }
-
-    pub async fn get_exit_code(user_name: &str) -> GenResult<(StatusCode, String)> {
-        let mut url = Self::create_base_url(Some(user_name))?.join("ExitCode")?;
+    pub async fn get_request(
+        user_name: &str,
+        request_type: InstanceGetRequests,
+    ) -> GenResult<(StatusCode, String)> {
+        let mut url = Self::create_base_url(Some(user_name))?.join(request_type.as_ref())?;
         url = Self::set_query(url);
         let request = Self::send_request(url).await?;
         Ok((request.status(), request.text().await?))
     }
 
-    pub async fn get_calendar_link(user_name: &str) -> GenResult<(StatusCode, String)> {
-        let mut url = Self::create_base_url(Some(user_name))?.join("Calendar")?;
-        url = Self::set_query(url);
-        let request = Self::send_request(url).await?;
-        Ok((request.status(), request.text().await?))
-    }
-
-    pub async fn get_is_active(user_name: &str) -> GenResult<(StatusCode, String)> {
-        let mut url = Self::create_base_url(Some(user_name))?.join("IsActive")?;
-        url = Self::set_query(url);
-        let request = Self::send_request(url).await?;
-        Ok((request.status(), request.text().await?))
-    }
-
-    pub async fn get_logbook(user_name: &str) -> GenResult<(StatusCode, String)> {
-        let mut url = Self::create_base_url(Some(user_name))?.join("Logbook")?;
+    pub async fn post_request(
+        user_name: &str,
+        request_type: InstancePostRequests,
+    ) -> GenResult<(StatusCode, String)> {
+        let mut url = Self::create_base_url(Some(user_name))?.join(request_type.as_ref())?;
         url = Self::set_query(url);
         let request = Self::send_request(url).await?;
         Ok((request.status(), request.text().await?))
