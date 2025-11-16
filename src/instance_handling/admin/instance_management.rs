@@ -5,6 +5,7 @@ use axum::routing::{get, post};
 pub fn router() -> Router<Api> {
     Router::new()
         .route("/get_instance", get(self::get::get_instance_data_admin))
+        .route("/example", get(self::get::get_example_user))
         .route("/add_instance", post(self::post::create_instance_admin))
         .route(
             "/change_instance_password",
@@ -22,9 +23,11 @@ pub fn router() -> Router<Api> {
 
 mod get {
     use axum::{
+        Json,
         extract::{Query, State},
         response::IntoResponse,
     };
+    use hyper::header;
     use reqwest::StatusCode;
 
     use crate::{
@@ -55,6 +58,15 @@ mod get {
             )
                 .into_response(),
         }
+    }
+
+    pub async fn get_example_user() -> impl IntoResponse {
+        (
+            StatusCode::OK,
+            [(header::CONTENT_TYPE, "application/json")],
+            Json(MijnBussieUser::default()),
+        )
+            .into_response()
     }
 }
 

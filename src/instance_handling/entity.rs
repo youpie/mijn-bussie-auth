@@ -10,24 +10,29 @@ use serde::{Deserialize, Serialize};
 pub type UserDataModel = user_data::Model;
 
 /// Encrypted values:
-///
 /// * Personeelsnummer
 /// * Password
 /// * Email
 /// * Name
-#[derive(Debug, DerivePartialModel, Deserialize, Serialize, Clone)]
+///
+/// Ignored values:
+/// * file_name
+/// * user_name (if not admin)
+/// * All id's
+#[derive(Debug, DerivePartialModel, Deserialize, Serialize, Clone, Default)]
 #[sea_orm(entity = "entity::user_data::Entity")]
 pub struct MijnBussieUser {
     #[serde(default)]
     pub user_data_id: i32,
     #[serde(default)]
     pub user_name: String,
-    #[serde(skip_serializing, default)]
+    #[serde(skip_serializing_if = "String::is_filled", default)]
     pub personeelsnummer: String,
-    #[serde(skip_serializing, default)]
+    #[serde(skip_serializing_if = "String::is_filled", default)]
     pub password: String,
+    #[serde(skip_serializing_if = "Option::is_some", default)]
     pub name: Option<String>,
-    #[serde(skip_serializing, default)]
+    #[serde(skip_serializing_if = "String::is_filled", default)]
     pub email: String,
     #[sea_orm(nested)]
     pub user_properties: user_properties::Model,
@@ -139,5 +144,15 @@ impl FindByUsername for user_data::Model {
             .await
             .ok()
             .flatten()
+    }
+}
+
+trait Filled {
+    fn is_filled(&self) -> bool;
+}
+
+impl Filled for String {
+    fn is_filled(&self) -> bool {
+        !self.is_empty()
     }
 }

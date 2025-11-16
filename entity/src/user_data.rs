@@ -3,7 +3,7 @@
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq, Serialize, Deserialize, Default)]
 #[sea_orm(table_name = "user_data")]
 pub struct Model {
     #[sea_orm(primary_key)]
@@ -13,10 +13,11 @@ pub struct Model {
     pub personeelsnummer: String,
     pub password: String,
     pub email: String,
-    pub name: Option<String>,
     pub file_name: String,
     pub user_properties: i32,
     pub custom_general_properties: Option<i32>,
+    #[sea_orm(column_type = "Text", nullable)]
+    pub name: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

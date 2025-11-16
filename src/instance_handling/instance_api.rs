@@ -17,6 +17,7 @@ pub enum KumaRequest {
 }
 
 #[derive(Debug, Deserialize, AsRefStr)]
+#[serde(rename_all_fields(deserialize = "lowercase"))]
 pub enum InstanceGetRequests {
     Logbook,
     IsActive,
@@ -24,6 +25,7 @@ pub enum InstanceGetRequests {
 }
 
 #[derive(Debug, Deserialize, AsRefStr)]
+#[serde(rename_all_fields(deserialize = "lowercase"))]
 pub enum InstancePostRequests {
     Start,
 }

@@ -5,7 +5,7 @@ use sea_orm::{DatabaseConnection, EntityTrait, QueryFilter, Related};
 use serde::Deserialize;
 
 use crate::{
-    encrypt_value,
+    decrypt_value,
     instance_handling::entity::{FindByUsername, UserDataModel},
     web::user::UserAccount,
 };
@@ -59,17 +59,21 @@ impl AdminQuery {
         &self,
         db: &DatabaseConnection,
     ) -> Option<Vec<UserDataModel>> {
-        if let Some(email) = &self.email
-            && let Ok(email_encrypted) = encrypt_value(email)
-        {
-            user_data::Entity::find()
-                .filter(user_data::Column::Email.eq(&email_encrypted))
-                .all(db)
-                .await
-                .ok()
-        } else {
-            None
-        }
+        user_data::Entity::find()
+            .all(db)
+            .await
+            .ok()
+            .and_then(|values| {
+                Some(
+                    values
+                        .into_iter()
+                        .filter(|adres| {
+                            Some(decrypt_value(&adres.email).ok().as_ref())
+                                .eq(&Some(self.email.as_ref()))
+                        })
+                        .collect(),
+                )
+            })
     }
 
     // Multiple instances can have the same email, so a vec should be returned
@@ -77,17 +81,27 @@ impl AdminQuery {
         &self,
         db: &DatabaseConnection,
     ) -> Option<Vec<UserDataModel>> {
-        if let Some(name) = &self.name
-            && let Ok(name_encrypted) = encrypt_value(&name)
-        {
-            user_data::Entity::find()
-                .filter(user_data::Column::Name.eq(&name_encrypted))
-                .all(db)
-                .await
-                .ok()
-        } else {
-            None
-        }
+        user_data::Entity::find()
+            .all(db)
+            .await
+            .ok()
+            .and_then(|values| {
+                Some(
+                    values
+                        .into_iter()
+                        .filter(|adres| {
+                            Some(
+                                &adres
+                                    .name
+                                    .as_ref()
+                                    .and_then(|name| decrypt_value(name).ok())
+                                    .as_ref(),
+                            )
+                            .eq(&Some(&self.name.as_ref()))
+                        })
+                        .collect(),
+                )
+            })
     }
 
     pub async fn get_instance_name(&self, db: &DatabaseConnection) -> Vec<String> {
