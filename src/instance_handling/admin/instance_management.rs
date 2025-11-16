@@ -53,7 +53,7 @@ mod get {
             )
                 .into_response(),
             None => (
-                StatusCode::NOT_FOUND,
+                StatusCode::NO_CONTENT,
                 format!("Could not find user_data from \"{instance_name}\""),
             )
                 .into_response(),
@@ -110,7 +110,7 @@ mod post {
         let _user = match user.get_user_account(db).await {
             Some(user) => user.get_instance_data(db).await.ok().flatten(),
             None => {
-                return (StatusCode::NOT_FOUND, "User not found").into_response();
+                return (StatusCode::NO_CONTENT, "User not found").into_response();
             }
         };
         match MijnBussieUser::create_and_insert_models(instance, db, true).await {
@@ -150,7 +150,7 @@ mod post {
                 Err(err) => (StatusCode::INTERNAL_SERVER_ERROR, err.to_string()).into_response(),
             }
         } else {
-            (StatusCode::NOT_FOUND, format!("User {:?} not found", user)).into_response()
+            (StatusCode::NO_CONTENT, format!("User {:?} not found", user)).into_response()
         }
     }
 }

@@ -17,15 +17,14 @@ pub enum KumaRequest {
 }
 
 #[derive(Debug, Deserialize, AsRefStr)]
-#[serde(rename_all_fields(deserialize = "lowercase"))]
 pub enum InstanceGetRequests {
     Logbook,
     IsActive,
     ExitCode,
+    Name,
 }
 
 #[derive(Debug, Deserialize, AsRefStr)]
-#[serde(rename_all_fields(deserialize = "lowercase"))]
 pub enum InstancePostRequests {
     Start,
 }
@@ -78,14 +77,15 @@ impl Instance {
         url
     }
 
-    pub async fn refresh_user(user_name: Option<&str>) -> GenResult<bool> {
-        let mut url = Self::create_base_url(None)?.join("refresh/")?;
+    pub async fn refresh_user(user_name: Option<&str>) -> GenResult<(StatusCode, String)> {
+        let mut url = Self::create_base_url(None)?.join("refresh")?;
         if let Some(user_name) = user_name {
-            url = url.join(user_name)?;
+            url = url.join(&format!("/{user_name}"))?;
         }
 
         url = Self::set_query(url);
-        Ok(Self::verify_response(Self::send_request(url).await?))
+        let request = Self::send_request(url).await?;
+        Ok((request.status(), request.text().await?))
     }
 
     pub async fn get_request(

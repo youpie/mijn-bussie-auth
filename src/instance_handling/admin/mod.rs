@@ -59,21 +59,20 @@ impl AdminQuery {
         &self,
         db: &DatabaseConnection,
     ) -> Option<Vec<UserDataModel>> {
-        user_data::Entity::find()
-            .all(db)
-            .await
-            .ok()
-            .and_then(|values| {
-                Some(
-                    values
-                        .into_iter()
-                        .filter(|adres| {
-                            Some(decrypt_value(&adres.email).ok().as_ref())
-                                .eq(&Some(self.email.as_ref()))
-                        })
-                        .collect(),
-                )
-            })
+        if let Some(email) = &self.email {
+            let users = user_data::Entity::find().all(db).await.ok();
+            if let Some(users) = users {
+                let emails = users
+                    .into_iter()
+                    .filter(|user| decrypt_value(&user.email).ok().as_ref() == Some(email))
+                    .collect::<Vec<UserDataModel>>();
+                Some(emails)
+            } else {
+                None
+            }
+        } else {
+            None
+        }
     }
 
     // Multiple instances can have the same email, so a vec should be returned
@@ -81,27 +80,26 @@ impl AdminQuery {
         &self,
         db: &DatabaseConnection,
     ) -> Option<Vec<UserDataModel>> {
-        user_data::Entity::find()
-            .all(db)
-            .await
-            .ok()
-            .and_then(|values| {
-                Some(
-                    values
-                        .into_iter()
-                        .filter(|adres| {
-                            Some(
-                                &adres
-                                    .name
-                                    .as_ref()
-                                    .and_then(|name| decrypt_value(name).ok())
-                                    .as_ref(),
-                            )
-                            .eq(&Some(&self.name.as_ref()))
-                        })
-                        .collect(),
-                )
-            })
+        if let Some(name) = &self.name {
+            let users = user_data::Entity::find().all(db).await.ok();
+            if let Some(users) = users {
+                let names = users
+                    .into_iter()
+                    .filter(|user| {
+                        &user
+                            .name
+                            .as_deref()
+                            .map(|encryped| decrypt_value(encryped).ok())
+                            == &Some(Some(name.to_owned()))
+                    })
+                    .collect::<Vec<UserDataModel>>();
+                Some(names)
+            } else {
+                None
+            }
+        } else {
+            None
+        }
     }
 
     pub async fn get_instance_name(&self, db: &DatabaseConnection) -> Vec<String> {
@@ -130,15 +128,16 @@ impl AdminQuery {
     pub fn map_instance_query_result(
         mut names: Vec<String>,
     ) -> Result<String, (StatusCode, Json<Vec<String>>)> {
-        if names.len() == 1
+        let response = if names.len() == 1
             && let Some(instance_name) = names.pop()
         {
             Ok(instance_name)
         } else if names.is_empty() {
-            Err((StatusCode::NOT_FOUND, Json(names)))
+            Err((StatusCode::BAD_REQUEST, Json(names)))
         } else {
-            Err((StatusCode::CONFLICT, Json(names)))
-        }
+            Err((StatusCode::MULTIPLE_CHOICES, Json(names)))
+        };
+        response
     }
 
     pub async fn get_instance_from_query(&self, db: &DatabaseConnection) -> Option<UserDataModel> {

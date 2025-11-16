@@ -13,10 +13,10 @@ use crate::{
 
 pub fn router() -> Router<Api> {
     Router::new()
-        .route("/{request}", get(instance_get))
-        .route("/{request}", post(instance_post))
         .route("/refresh", post(refresh_instance))
         .route("/kuma/{request}/{user}", post(self::post::handle_kuma))
+        .route("/api/{request}", get(instance_get))
+        .route("/api/{request}", post(instance_post))
         .route("/kuma/{request}", post(self::post::handle_kuma))
 }
 
@@ -46,11 +46,14 @@ mod get {
                 Ok(name) => name,
                 Err(names) => return names.into_response(),
             };
-        match instance_api::Instance::get_request(&instance_name, request_type).await {
+        let response = match instance_api::Instance::get_request(&instance_name, request_type).await
+        {
             Ok(respone) => respone,
             Err(err) => (StatusCode::INTERNAL_SERVER_ERROR, err.to_string()),
-        }
-        .into_response()
+        };
+
+        println!("response: {response:?}");
+        response.into_response()
     }
 }
 
@@ -94,12 +97,12 @@ mod post {
         let instance_name =
             match AdminQuery::map_instance_query_result(user.get_instance_name(&data.db).await) {
                 Ok(name) => Some(name),
-                Err(err) if err.0 == StatusCode::CONFLICT => return err.into_response(),
+                Err(err) if err.0 == StatusCode::MULTIPLE_CHOICES => return err.into_response(),
                 Err(_) => None,
             };
 
         match instance_api::Instance::refresh_user(instance_name.as_deref()).await {
-            Ok(started) => (StatusCode::OK, started.to_string()),
+            Ok(started) => started,
             Err(err) => (StatusCode::INTERNAL_SERVER_ERROR, err.to_string()),
         }
         .into_response()

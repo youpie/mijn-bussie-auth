@@ -19,5 +19,5 @@ pub fn admin_router() -> Router<Api> {
     Router::new()
         .merge(db::router())
         .merge(instance_management::router())
-        .nest("/api", passthrough::router())
+        .merge(passthrough::router())
 }
