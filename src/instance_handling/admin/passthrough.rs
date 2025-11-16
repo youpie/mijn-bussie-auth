@@ -89,16 +89,14 @@ mod post {
 
     pub async fn refresh_instance(
         State(data): State<Api>,
-        Query(user): Query<Option<AdminQuery>>,
+        Query(user): Query<AdminQuery>,
     ) -> impl IntoResponse {
-        let instance_name = if let Some(query) = user {
-            match AdminQuery::map_instance_query_result(query.get_instance_name(&data.db).await) {
+        let instance_name =
+            match AdminQuery::map_instance_query_result(user.get_instance_name(&data.db).await) {
                 Ok(name) => Some(name),
-                Err(err) => return err.into_response(),
-            }
-        } else {
-            None
-        };
+                Err(err) if err.0 == StatusCode::CONFLICT => return err.into_response(),
+                Err(_) => None,
+            };
 
         match instance_api::Instance::refresh_user(instance_name.as_deref()).await {
             Ok(started) => (StatusCode::OK, started.to_string()),

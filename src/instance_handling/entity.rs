@@ -107,6 +107,7 @@ impl MijnBussieUser {
 
         let mut user_properties = self.user_properties.into_active_model();
         user_properties.execution_minute = Set(execution_time);
+        user_properties.user_properties_id = NotSet;
 
         let user_data = user_data::ActiveModel {
             user_data_id: NotSet,
