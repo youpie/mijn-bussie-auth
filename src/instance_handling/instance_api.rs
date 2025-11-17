@@ -9,22 +9,27 @@ use strum::{AsRefStr, EnumString};
 
 use crate::GenResult;
 
-#[allow(nonstandard_style)]
 #[derive(AsRefStr, EnumString, Deserialize)]
+#[serde(rename_all = "snake_case")]
+#[strum(serialize_all = "snake_case")]
 pub enum KumaRequest {
-    reset,
-    delete,
+    Reset,
+    Delete,
 }
 
 #[derive(Debug, Deserialize, AsRefStr)]
+#[serde(rename_all = "snake_case")]
+#[strum(serialize_all = "snake_case")]
 pub enum InstanceGetRequests {
     Logbook,
     IsActive,
     ExitCode,
     Name,
+    Calendar,
 }
 
 #[derive(Debug, Deserialize, AsRefStr)]
+#[serde(rename_all = "snake_case")]
 pub enum InstancePostRequests {
     Start,
 }
@@ -54,7 +59,7 @@ impl Instance {
 
     fn create_base_kuma_url(user_name: Option<&str>, request: KumaRequest) -> GenResult<Url> {
         let mut url = Self::create_base_url(None)?.join("kuma/")?;
-        url = url.join(request.as_ref())?;
+        url = url.join(&format!("{}/", request.as_ref().to_ascii_lowercase()))?;
         url = match user_name {
             Some(user_name) => url.join(user_name)?,
             None => url.join("all")?,

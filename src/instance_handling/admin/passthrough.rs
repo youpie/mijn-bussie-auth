@@ -13,11 +13,10 @@ use crate::{
 
 pub fn router() -> Router<Api> {
     Router::new()
-        .route("/refresh", post(refresh_instance))
-        .route("/kuma/{request}/{user}", post(self::post::handle_kuma))
-        .route("/api/{request}", get(instance_get))
-        .route("/api/{request}", post(instance_post))
+        .route("/{request}", get(instance_get))
+        .route("/{request}", post(instance_post))
         .route("/kuma/{request}", post(self::post::handle_kuma))
+        .route("/refresh", post(refresh_instance))
 }
 
 mod get {
@@ -51,15 +50,13 @@ mod get {
             Ok(respone) => respone,
             Err(err) => (StatusCode::INTERNAL_SERVER_ERROR, err.to_string()),
         };
-
-        println!("response: {response:?}");
         response.into_response()
     }
 }
 
 mod post {
     use axum::{
-        extract::{Path, Query, State},
+        extract::{Path, Query, State, rejection::QueryRejection},
         response::IntoResponse,
     };
     use reqwest::StatusCode;
@@ -108,10 +105,20 @@ mod post {
         .into_response()
     }
 
+    #[axum::debug_handler]
     pub async fn handle_kuma(
-        Path((request, user)): Path<(KumaRequest, Option<String>)>,
+        Path(request): Path<KumaRequest>,
+        State(data): State<Api>,
+        user: Result<Query<AdminQuery>, QueryRejection>,
     ) -> impl IntoResponse {
-        match Instance::kuma_request(user.as_deref(), request).await {
+        let Query(user) = user.unwrap_or_default();
+        let instance_name =
+            match AdminQuery::map_instance_query_result(user.get_instance_name(&data.db).await) {
+                Ok(name) => Some(name),
+                Err(err) if err.0 == StatusCode::MULTIPLE_CHOICES => return err.into_response(),
+                Err(_) => None,
+            };
+        match Instance::kuma_request(instance_name.as_deref(), request).await {
             Ok(code) => code.into_response(),
             Err(err) => (StatusCode::INTERNAL_SERVER_ERROR, err.to_string()).into_response(),
         }

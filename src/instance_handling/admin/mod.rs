@@ -15,7 +15,7 @@ pub mod db;
 pub mod instance_management;
 pub mod passthrough;
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Default)]
 pub struct AdminQuery {
     pub account_name: Option<String>,
     pub instance_name: Option<String>,
