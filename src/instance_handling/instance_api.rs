@@ -30,6 +30,7 @@ pub enum InstanceGetRequests {
 
 #[derive(Debug, Deserialize, AsRefStr)]
 #[serde(rename_all = "snake_case")]
+#[strum(serialize_all = "snake_case")]
 pub enum InstancePostRequests {
     Start,
 }

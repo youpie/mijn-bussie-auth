@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>
+            Mijn Bussie Admin
+        </title>
+        <script src="dashboard.js"></script>
+    </head>
+    <body>
+        <div>
+            <h1>
+                Signin
+            </h1>
+            <label for="url">Url</label>
+            <input type="url" id="url" value="https://127.0.0.1:3001"><br>
+            <label for="username">Username</label>
+            <input type="text" id="username"><br>
+            <label for="password">Password</label>
+            <input type="password" id="password"><br>
+            <button onclick="login()">Inloggen</button>
+            <button onclick="send('/logout')">Uitloggen</button>
+        </div>
+        <div>
+            <h1>
+                Search User
+            </h1>
+            <label for="email">Email</label>
+            <input type="text" id="email"><br>
+            <label for="name">name</label>
+            <input type="text" id="name"><br>
+            <label for="psn">Personeelsnummer</label>
+            <input type="text" id="psn"><br>
+            <label for="an">Account naam</label>
+            <input type="text" id="an"><br>
+        </div>
+        <div>
+            <h2>
+                Get Data
+            </h2>
+            <div>
+                <p style="margin-bottom: 0%;">Get</p>
+                <button onclick="send('/admin/exit_code', 'ExitCode')">Exit
+                    Code</button>
+                <button onclick='send("/admin/is_active", "Active")'>Is
+                    active?</button>
+                <button
+                    onclick="send('/admin/calendar', 'GenResponse')">Calendar</button><br>
+            </div>
+            <div>
+                <p style="margin-bottom: 0%;margin-top: 0;">Post</p>
+                <button
+                    onclick="send('/admin/start', 'Active', true)">Start</button>
+            </div>
+
+            <textarea id="response" rows="4" cols="50" readonly="readonly">
+</textarea><br>
+
+        </div>
+        <div>
+            <p style="margin-bottom: 0%; margin-top: 0;">Multiple</p>
+            <button>Emails</button>
+            <button>Namen</button>
+        </div>
+        <div>
+            <h2>
+                Wachtwoord veranderen
+            </h2>
+            <label for="instance_pwd">Nieuw Wachtwoord</label>
+            <input type="password" id="instance_pwd"><br>
+            <button onclick="get_calendar()">Veranderen</button>
+        </div>
+
+    </body>
+</html>

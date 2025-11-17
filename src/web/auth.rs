@@ -30,6 +30,7 @@ mod post {
         if auth_session.login(&user).await.is_err() {
             return StatusCode::INTERNAL_SERVER_ERROR.into_response();
         }
+        auth_session.user.unwrap();
         StatusCode::OK.into_response()
     }
 }

@@ -4,7 +4,9 @@ use axum::Router;
 use axum_login::{AuthManagerLayerBuilder, login_required, permission_required};
 use axum_server::tls_rustls::RustlsConfig;
 use dotenvy::var;
+use hyper::header;
 use sea_orm::{Database, DatabaseConnection, sqlx::PgPool};
+use tower_http::cors::{AllowCredentials, AllowHeaders, AllowOrigin, CorsLayer, ExposeHeaders};
 use tower_sessions::{Expiry, SessionManagerLayer, cookie::time::Duration};
 use tower_sessions_sqlx_store::PostgresStore;
 
@@ -37,9 +39,11 @@ impl Api {
         // as a request extension.
         let pg_pool = PgPool::connect_lazy(&var("DATABASE_URL")?)?;
         let session_store = PostgresStore::new(pg_pool);
+
         session_store.migrate().await?;
         let session_layer = SessionManagerLayer::new(session_store)
-            .with_secure(false)
+            .with_secure(true)
+            .with_same_site(tower_sessions::cookie::SameSite::None)
             .with_expiry(Expiry::OnInactivity(Duration::days(1)));
 
         let tls_config = RustlsConfig::from_pem_file(
@@ -48,6 +52,11 @@ impl Api {
         )
         .await
         .expect("Missing certificate files");
+        let cors = CorsLayer::new()
+            .allow_credentials(AllowCredentials::yes())
+            .allow_origin(AllowOrigin::mirror_request())
+            .allow_headers(AllowHeaders::mirror_request())
+            .expose_headers(ExposeHeaders::list([header::SET_COOKIE]));
 
         // Auth service.
         //
@@ -64,6 +73,7 @@ impl Api {
             .merge(auth::router())
             .merge(new_user::router())
             .layer(auth_layer)
+            .layer(cors)
             .with_state(test);
 
         let port = var("API_PORT")?;

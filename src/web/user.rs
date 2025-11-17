@@ -107,9 +107,10 @@ impl AuthnBackend for Backend {
             .into_partial_model::<UserAccount>()
             .one(&self.db)
             .await?;
-
         let verified_account = task::spawn_blocking(|| {
-            user.filter(|user| bcrypt::verify(creds.password, &user.inner.password_hash).is_ok())
+            user.filter(|user| {
+                bcrypt::verify(creds.password, &user.inner.password_hash).unwrap_or_default()
+            })
         })
         .await?;
         Ok(verified_account)

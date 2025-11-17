@@ -1644,6 +1644,7 @@ dependencies = [
  "strum",
  "thiserror 2.0.17",
  "tokio",
+ "tower-http",
  "tower-sessions",
  "tower-sessions-sqlx-store",
 ]
