@@ -8,17 +8,19 @@
     </head>
     <body>
         <div>
+
+            <label for="url">Url</label>
+            <input type="url" id="url" value="https://127.0.0.1:3001"><br>
             <h1>
                 Signin
             </h1>
-            <label for="url">Url</label>
-            <input type="url" id="url" value="https://127.0.0.1:3001"><br>
             <label for="username">Username</label>
             <input type="text" id="username"><br>
             <label for="password">Password</label>
             <input type="password" id="password"><br>
-            <button onclick="login()">Inloggen</button>
+            <button onclick="login('/login')">Inloggen</button>
             <button onclick="send('/logout')">Uitloggen</button>
+            <button onclick="login('/signup')">Registreren</button>
         </div>
         <div>
             <h1>
@@ -44,12 +46,24 @@
                 <button onclick='send("/admin/is_active", "Active")'>Is
                     active?</button>
                 <button
-                    onclick="send('/admin/calendar', 'GenResponse')">Calendar</button><br>
+                    onclick="send('/admin/calendar', 'GenResponse')">Calendar</button>
+                <button
+                    onclick="send('/admin/logbook', 'string')">Logbook</button><br>
             </div>
             <div>
                 <p style="margin-bottom: 0%;margin-top: 0;">Post</p>
                 <button
                     onclick="send('/admin/start', 'Active', true)">Start</button>
+                <button
+                    onclick="send('/admin/assign_instance', [], true)">Assign</button>
+                <button
+                    onclick="send('/admin/refresh', 'return', true)">Refresh</button>
+                <button
+                    onclick="send('/admin/kuma/reset', 'return', true)">Kuma
+                    reset</button>
+                <button
+                    onclick="send('/admin/kuma/delete', 'return', true)">Kuma
+                    delete</button>
             </div>
 
             <textarea id="response" rows="4" cols="50" readonly="readonly">
@@ -58,8 +72,12 @@
         </div>
         <div>
             <p style="margin-bottom: 0%; margin-top: 0;">Multiple</p>
-            <button>Emails</button>
-            <button>Namen</button>
+            <button
+                onclick="send('/admin/emails', 'array', false, true)">Emails</button>
+            <button
+                onclick="send('/admin/names', 'array', false, true)">Namen</button>
+            <button
+                onclick="send('/admin/instances', 'array', false, true)">Instances</button>
         </div>
         <div>
             <h2>
@@ -67,7 +85,30 @@
             </h2>
             <label for="instance_pwd">Nieuw Wachtwoord</label>
             <input type="password" id="instance_pwd"><br>
-            <button onclick="get_calendar()">Veranderen</button>
+            <button onclick="change_password()">Veranderen</button>
+        </div>
+
+        <div>
+            <h2>
+                Gebruiker toevoegen
+            </h2>
+            <label for="new_email">Email</label>
+            <input type="email" id="new_email"><br>
+            <label for="new_psn">PSN</label>
+            <input type="text" id="new_psn"><br>
+            <label for="new_pwd">WW</label>
+            <input type="password" id="new_pwd"><br>
+            <label for="exec_int">Uitvoer interval</label>
+            <input type="number" id="exec_int" value="4"><br>
+            <label for="new_shift">Nieuwe diensten</label>
+            <input type="checkbox" id="new_shift">
+            <label for="updated_shift">Geupdate diensten</label>
+            <input type="checkbox" id="updated_shift"><br>
+            <label for="updated_shift">Stop middernacht</label>
+            <input type="checkbox" id="stop_midnight">
+            <label for="updated_shift">Splits middernacht</label>
+            <input type="checkbox" id="split_midnight"><br>
+            <button onclick="add_instance()">Toevoegen</button>
         </div>
 
     </body>

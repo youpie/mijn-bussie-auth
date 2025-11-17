@@ -107,12 +107,6 @@ mod post {
         Json(instance): Json<MijnBussieUser>,
     ) -> impl IntoResponse {
         let db = &data.db;
-        let _user = match user.get_user_account(db).await {
-            Some(user) => user.get_instance_data(db).await.ok().flatten(),
-            None => {
-                return (StatusCode::NO_CONTENT, "User not found").into_response();
-            }
-        };
         match MijnBussieUser::create_and_insert_models(instance, db, true).await {
             Ok(_) => StatusCode::OK.into_response(),
             Err(err) => (StatusCode::INTERNAL_SERVER_ERROR, err.to_string()).into_response(),
