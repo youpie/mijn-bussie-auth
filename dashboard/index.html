@@ -5,9 +5,10 @@
             Mijn Bussie Admin
         </title>
         <script src="dashboard.js"></script>
+
     </head>
     <body>
-        <div>
+        <div id="signin">
 
             <label for="url">Url</label>
             <input type="url" id="url" value="https://127.0.0.1:3001"><br>
@@ -22,7 +23,7 @@
             <button onclick="send('/logout')">Uitloggen</button>
             <button onclick="login('/signup')">Registreren</button>
         </div>
-        <div>
+        <div id="search">
             <h1>
                 Search User
             </h1>
@@ -35,11 +36,11 @@
             <label for="an">Account naam</label>
             <input type="text" id="an"><br>
         </div>
-        <div>
+        <div id="get">
             <h2>
                 Get Data
             </h2>
-            <div>
+            <div id="four">
                 <p style="margin-bottom: 0%;">Get</p>
                 <button onclick="send('/admin/exit_code', 'ExitCode')">Exit
                     Code</button>
@@ -50,7 +51,7 @@
                 <button
                     onclick="send('/admin/logbook', 'string')">Logbook</button><br>
             </div>
-            <div>
+            <div id="post">
                 <p style="margin-bottom: 0%;margin-top: 0;">Post</p>
                 <button
                     onclick="send('/admin/start', 'Active', true)">Start</button>
@@ -70,7 +71,7 @@
 </textarea><br>
 
         </div>
-        <div>
+        <div id="list">
             <p style="margin-bottom: 0%; margin-top: 0;">Multiple</p>
             <button
                 onclick="send('/admin/emails', 'array', false, true)">Emails</button>
@@ -79,7 +80,7 @@
             <button
                 onclick="send('/admin/instances', 'array', false, true)">Instances</button>
         </div>
-        <div>
+        <div id="change">
             <h2>
                 Wachtwoord veranderen
             </h2>
@@ -88,7 +89,7 @@
             <button onclick="change_password()">Veranderen</button>
         </div>
 
-        <div>
+        <div id="new">
             <h2>
                 Gebruiker toevoegen
             </h2>

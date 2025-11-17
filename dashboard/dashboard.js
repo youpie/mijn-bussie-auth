@@ -23,6 +23,7 @@ async function send(relative_url, element, post, drop_query) {
 async function change_password() {
     let new_password = document.getElementById("instance_pwd").value;
     let url = get_url("/admin/change_instance_password");
+    url = add_admin_query(url);
     var change_request = {
         "password": new_password
     };
@@ -40,7 +41,7 @@ async function add_instance() {
     user_json.password = document.getElementById("new_pwd").value;
     let new_shift_mail = document.getElementById("new_shift").checked;
     let updated_shift_mail = document.getElementById("updated_shift").checked;
-    user_json.user_properties.execution_interval_minutes = Number(document.getElementById("exec_int").value);
+    user_json.user_properties.execution_interval_minutes = Number(document.getElementById("exec_int").value) * 60;
     user_json.user_properties.send_mail_new_shift = new_shift_mail;
     user_json.user_properties.send_mail_updated_shift = updated_shift_mail
     user_json.user_properties.send_mail_removed_shift = Boolean(new_shift_mail | updated_shift_mail);

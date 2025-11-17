@@ -103,7 +103,6 @@ mod post {
 
     pub async fn create_instance_admin(
         State(data): State<Api>,
-        Query(user): Query<AdminQuery>,
         Json(instance): Json<MijnBussieUser>,
     ) -> impl IntoResponse {
         let db = &data.db;
