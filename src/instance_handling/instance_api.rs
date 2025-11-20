@@ -84,9 +84,11 @@ impl Instance {
     }
 
     pub async fn refresh_user(user_name: Option<&str>) -> GenResult<(StatusCode, String)> {
-        let mut url = Self::create_base_url(None)?.join("refresh")?;
+        let mut url = Self::create_base_url(None)?;
         if let Some(user_name) = user_name {
-            url = url.join(&format!("/{user_name}"))?;
+            url = url.join(&format!("refresh/{user_name}"))?;
+        } else {
+            url = url.join("refresh")?;
         }
 
         url = Self::set_query(url);

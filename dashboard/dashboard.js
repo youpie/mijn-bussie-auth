@@ -32,6 +32,17 @@ async function change_password() {
     await add_response(response, "")
 }
 
+async function import_user() {
+    let path = document.getElementById("import_path").value;
+    let url = get_url("/admin/import_instance");
+    let query = new URLSearchParams(
+        path
+    );
+    url = url + "?" + query
+    let response = await send_request(url, "POST", "")
+    await add_response(response, "string")
+}
+
 async function add_instance() {
     let example_url = get_url("/admin/example");
     let example_response = await send_request(example_url);
