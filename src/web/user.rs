@@ -103,7 +103,7 @@ impl AuthnBackend for Backend {
 
     async fn authenticate(&self, creds: Self::Credentials) -> BackendResult<Option<Self::User>> {
         let user = user_account::Entity::find()
-            .filter(user_account::Column::Username.contains(creds.username))
+            .filter(user_account::Column::Username.eq(creds.username))
             .into_partial_model::<UserAccount>()
             .one(&self.db)
             .await?;

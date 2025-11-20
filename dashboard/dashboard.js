@@ -6,7 +6,8 @@ async function login(url) {
         "password": password,
     }
     let login_url = get_url(url);
-    await send_request(login_url, "POST", JSON.stringify(login_request), true)
+    let response = await send_request(login_url, "POST", JSON.stringify(login_request), true)
+    await add_response(response, "")
 }
 
 async function send(relative_url, element, post, drop_query) {
@@ -58,23 +59,21 @@ async function add_instance() {
 async function add_response(response, element) {
     document.getElementById("response").style = ""
     // document.getElementById("response").innerText = "";
-    if (response.status != 200) {
-        let reponse_text = await response.text()
-        if (reponse_text != "") document.getElementById("response").innerText = reponse_text;
-        else document.getElementById("response").innerText = reponse.status
+    let response_status = response.status
+    if (response_status !== 200) {
+        let response_text = (await response.text())
+        if (response_text === "" | response_text === "[]") document.getElementById("response").innerText = response_status;
+        else document.getElementById("response").innerText = response_text
         document.getElementById("response").style = "color:red;"
     } else {
-        if (element == "array") {
-            document.getElementById("response").innerHTML = (await response.json()).join('\n')
-        }
-        else if (element == "return") return (await response.json());
-        else if (element == "string") document.getElementById("response").innerText = await response.text()
-        else if (element) {
-            let response_json = await response.json()
-            document.getElementById("response").innerText = response_json[element]
-        }
-
+        let response_text = await response.text()
+        if (response_text === "" || response_text === "[]") document.getElementById("response").innerHTML = response.status
+        else if (element === "array") document.getElementById("response").innerHTML = (JSON.parse(response_text)).join('\n')
+        else if (element === "return") return await JSON.parse(response_text);
+        else if (element === "string") document.getElementById("response").innerText = response_text
+        else if (element) document.getElementById("response").innerText = (JSON.parse(response_text))[element]
     }
+
 }
 
 async function send_request(url, method, content) {
