@@ -18,6 +18,9 @@ pub struct Model {
     pub custom_general_properties: Option<i32>,
     #[sea_orm(column_type = "Text", nullable)]
     pub name: Option<String>,
+    pub last_succesfull_sign_in_date: Option<DateTime>,
+    pub last_execution_date: Option<DateTime>,
+    pub creation_date: DateTime,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

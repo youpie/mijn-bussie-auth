@@ -30,6 +30,10 @@ pub struct UserAccount {
 
 impl UserAccount {
     pub async fn add_user(db: &DatabaseConnection, creds: Credentials) -> GenResult<()> {
+        if creds.is_empty() {
+            return Err("Empty credentials".into());
+        }
+
         let password_hash =
             tokio::task::spawn_blocking(|| bcrypt::hash(creds.password, DEFAULT_COST)).await??;
         let account = user_account::ActiveModel {
@@ -67,6 +71,12 @@ impl AuthUser for UserAccount {
 pub struct Credentials {
     pub username: String,
     pub password: String,
+}
+
+impl Credentials {
+    pub fn is_empty(&self) -> bool {
+        self.password.is_empty() || self.username.is_empty()
+    }
 }
 
 #[derive(Debug, Clone)]

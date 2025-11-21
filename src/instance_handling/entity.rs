@@ -119,6 +119,9 @@ impl MijnBussieUser {
             user_properties: NotSet,
             custom_general_properties: NotSet,
             name: NotSet,
+            last_execution_date: NotSet,
+            last_succesfull_sign_in_date: NotSet,
+            creation_date: Set(chrono::offset::Utc::now().naive_utc()),
         };
         add_new_user_to_db(db, user_properties, user_data).await
     }
