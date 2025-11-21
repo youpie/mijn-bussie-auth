@@ -73,7 +73,10 @@ pub fn load_user(
         ..Default::default()
     };
     let user_data = user_data::ActiveModel {
-        user_name: Set(username.clone()),
+        user_name: Set(username
+            .parse::<u32>()
+            .and_then(|name| Ok(name.to_string()))
+            .unwrap_or(username.clone())),
         personeelsnummer: Set(encrypt_value(&username)?),
         password: Set(encrypt_value(&password)?),
         email: Set(encrypt_value(&email_to)?),
