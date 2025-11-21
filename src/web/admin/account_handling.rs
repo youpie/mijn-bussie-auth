@@ -3,10 +3,7 @@ use axum::{Router, routing::post};
 use crate::web::api::Api;
 
 pub fn router() -> Router<Api> {
-    Router::new().route(
-        "/admin/change_password",
-        post(self::post::change_password_admin),
-    )
+    Router::new().route("/change_password", post(self::post::change_password_admin))
 }
 
 mod post {
@@ -27,6 +24,9 @@ mod post {
         Query(query): Query<AdminQuery>,
         Json(new_password): Json<PasswordChange>,
     ) -> impl IntoResponse {
+        if new_password.password.is_empty() {
+            return StatusCode::NOT_ACCEPTABLE.into_response();
+        }
         let db = &data.db;
         match change_password(
             db,

@@ -27,7 +27,9 @@ pub fn load_user(
         .var("CYCLE_TIME")
         .unwrap_or((env_map.var("KUMA_HEARTBEAT_INTERVAL")?.parse::<i32>()? - 500).to_string())
         .parse::<i32>()?
-        / 60 / 60 * 60;
+        / 60
+        / 60
+        * 60;
     let email_to = env_map.var("MAIL_TO")?;
     let new_shift = str_to_bool(
         env_map
@@ -78,14 +80,11 @@ pub fn load_user(
         send_welcome_mail: Set(welcome_mail),
         stop_midnight_shift: Set(stop_night_shift),
         split_night_shift: Set(split_night_shift),
-        auto_delete_account: Set(true)
+        auto_delete_account: Set(true),
     };
     let user_data = user_data::ActiveModel {
         user_data_id: NotSet,
-        user_name: Set(username
-            .parse::<u32>()
-            .and_then(|name| Ok(name.to_string()))
-            .unwrap_or(username.clone())),
+        user_name: Set(username.parse::<u32>().unwrap().to_string()),
         personeelsnummer: Set(encrypt_value(&username)?),
         password: Set(encrypt_value(&password)?),
         email: Set(encrypt_value(&email_to)?),
@@ -95,7 +94,7 @@ pub fn load_user(
         user_properties: NotSet,
         last_execution_date: NotSet,
         last_succesfull_sign_in_date: NotSet,
-        creation_date: Set(chrono::offset::Utc::now().naive_utc())
+        creation_date: Set(chrono::offset::Utc::now().naive_utc()),
     };
     Ok((user_properties, user_data))
 }

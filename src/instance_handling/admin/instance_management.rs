@@ -94,7 +94,7 @@ mod get {
                 .flatten()
                 .is_some_and(|exit_code| {
                     if exit_code["ExitCode"] != "OK" {
-                        failed_hashmap.insert(username, exit_code);
+                        failed_hashmap.insert(username, exit_code["ExitCode"].clone());
                     }
                     true
                 });
