@@ -1,3 +1,14 @@
+window.onload = function() {
+    let url = get_url("/me")
+    let response = send_request(url, "GET", [])
+    change_banner(response.status)
+};
+
+function change_banner(response_status) {
+    if (response_status !== 200) {document.getElementById("banner").style.backgroundColor = "#990000"}
+    else {document.getElementById("banner").style.backgroundColor = "#5F5AD3"}
+}
+
 async function login(url) {
     var username = document.getElementById("username").value;
     var password = document.getElementById("password").value;
@@ -88,6 +99,7 @@ async function add_instance() {
 }
 
 async function add_response(response, element) {
+    change_banner(response.status)
     document.getElementById("response").style = ""
     // document.getElementById("response").innerText = "";
     let response_status = response.status

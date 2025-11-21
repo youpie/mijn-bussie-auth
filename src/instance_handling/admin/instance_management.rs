@@ -34,6 +34,7 @@ mod get {
     use hyper::header;
     use reqwest::StatusCode;
     use sea_orm::EntityTrait;
+    use serde_json::Value;
 
     use crate::{
         instance_handling::{admin::AdminQuery, entity::MijnBussieUser, instance_api},
@@ -89,9 +90,10 @@ mod get {
                 )
                 .await
                 .ok()
-                .map(|response| response.1)
+                .map(|response| serde_json::from_str::<Value>(&response.1).ok())
+                .flatten()
                 .is_some_and(|exit_code| {
-                    if exit_code != "{\"ExitCode\":\"OK\"}" {
+                    if exit_code["ExitCode"] != "OK" {
                         failed_hashmap.insert(username, exit_code);
                     }
                     true

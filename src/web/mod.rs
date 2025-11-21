@@ -3,3 +3,4 @@ pub mod api;
 mod auth;
 mod new_user;
 pub mod user;
+mod protected;
