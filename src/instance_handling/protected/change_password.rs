@@ -4,7 +4,7 @@ use crate::web::api::Api;
 
 pub fn router() -> Router<Api> {
     Router::new().route(
-        "/change_password",
+        "/change_instance_password",
         post(self::post::change_password_protected),
     )
 }

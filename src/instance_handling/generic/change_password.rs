@@ -9,7 +9,7 @@ pub mod post {
 
     #[derive(Deserialize)]
     pub struct PasswordChange {
-        password: String,
+        pub password: String,
     }
 
     pub async fn change_password(

@@ -5,8 +5,9 @@ window.onload = function() {
 };
 
 function change_banner(response_status) {
-    if (response_status !== 200) {document.getElementById("banner").style.backgroundColor = "#990000"}
-    else {document.getElementById("banner").style.backgroundColor = "#5F5AD3"}
+    if (response_status !== 401) {document.getElementById("banner").style.backgroundColor = "#5F5AD3"}
+    else {document.getElementById("banner").style.backgroundColor = "#990000"}
+    
 }
 
 async function login(url) {
@@ -39,6 +40,26 @@ async function change_password() {
     var change_request = {
         "password": new_password
     };
+    let response = await send_request(url, "POST", JSON.stringify(change_request), true);
+    await add_response(response, "")
+}
+
+async function change_password_account() {
+    let new_password = document.getElementById("password").value;
+    let url = get_url("/admin/change_password");
+
+    let account_name = document.getElementById("username").value;
+
+    let params = {};
+    params.account_name = account_name;
+
+    let query = new URLSearchParams(params);
+    url = url + "?" + query
+
+    var change_request = {
+        "password": new_password
+    };
+
     let response = await send_request(url, "POST", JSON.stringify(change_request), true);
     await add_response(response, "")
 }

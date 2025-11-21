@@ -69,6 +69,7 @@ impl Api {
             .nest("/admin", admin::admin_router())
             .route_layer(permission_required!(Backend, Permissions::Admin))
             .merge(instance_handling::router::protected_router())
+            .merge(super::protected::router())
             .route_layer(login_required!(Backend))
             .merge(auth::router())
             .merge(new_user::router())

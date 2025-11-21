@@ -1,6 +1,6 @@
-mod admin;
+pub mod admin;
 pub mod entity;
-mod generic;
+pub mod generic;
 mod instance_api;
 mod protected;
 pub mod router;
