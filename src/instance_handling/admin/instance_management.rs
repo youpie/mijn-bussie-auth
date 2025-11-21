@@ -34,7 +34,6 @@ mod get {
     use hyper::header;
     use reqwest::StatusCode;
     use sea_orm::EntityTrait;
-    use serde::Deserialize;
 
     use crate::{
         instance_handling::{admin::AdminQuery, entity::MijnBussieUser, instance_api},
