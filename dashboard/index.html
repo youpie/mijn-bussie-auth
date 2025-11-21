@@ -1,125 +1,192 @@
 <!DOCTYPE html>
 <html>
     <head>
-        <title>
-            Mijn Bussie Admin
-        </title>
+        <meta charset="UTF-8">
+        <title>Mijn Bussie admin</title>
         <script src="dashboard.js"></script>
-
+        <link rel="stylesheet" href="style.css">
     </head>
-    <body>
-        <div id="signin">
+    <body
+        style="margin:0; padding:0; background-color:#f0f0f0; font-family: Verdana, sans-serif; color:#000000;">
+        <!-- Main container without a visible border -->
+        <table align="center" cellpadding="0" cellspacing="0"
+            border="0"
+            style="background-color:#ffffff; box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);">
+            <!-- Header -->
+            <tr>
+                <td
+                    style="background-color:#5F5AD3; color:#ffffff; text-align:center; padding:15px; font-size:24px; font-weight:bold;">
+                    <table width="100%" cellpadding="0" cellspacing="0">
+                        <tr>
+                            <td width="50" align="left"
+                                style="padding-left:15px;">
+                                <img
+                                    src="https://raw.githubusercontent.com/youpie/webcom_ical/refs/heads/main/assets/logo_white.png"
+                                    alt="Logo" width="40" height="40"
+                                    style="display:block;">
+                            </td>
+                            <td align="left"
+                                style="color:#ffffff; font-size:24px; font-weight:bold; padding-left:10px;">
+                                Mijn Bussie Administrator
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+            <!-- Content -->
+            <tr>
+                <td style="padding:15px;">
+                    <div id="wrapper">
+                        <div id="div1">
+                            <div id="signin">
+                                <h1>
+                                    Signin
+                                </h1>
+                                <label for="username">Username</label>
+                                <input type="text" id="username"><br>
+                                <label for="password">Password</label>
+                                <input type="password" id="password"><br>
+                                <button
+                                    onclick="login('/login')">Inloggen</button>
+                                <button
+                                    onclick="send('/logout')">Uitloggen</button>
+                                <button
+                                    onclick="login('/signup')">Registreren</button>
+                            </div>
+                        </div>
+                        <div id="div3">
+                            <label for="url">Url</label>
+                            <input type="url" id="url"
+                                value="https://Babette:3123"><br>
+                        </div>
+                    </div>
 
-            <label for="url">Url</label>
-            <input type="url" id="url" value="https://127.0.0.1:3001"><br>
-            <h1>
-                Signin
-            </h1>
-            <label for="username">Username</label>
-            <input type="text" id="username"><br>
-            <label for="password">Password</label>
-            <input type="password" id="password"><br>
-            <button onclick="login('/login')">Inloggen</button>
-            <button onclick="send('/logout')">Uitloggen</button>
-            <button onclick="login('/signup')">Registreren</button>
-        </div>
-        <div id="search">
-            <h1>
-                Search User
-            </h1>
-            <label for="email">Email</label>
-            <input type="text" id="email"><br>
-            <label for="name">name</label>
-            <input type="text" id="name"><br>
-            <label for="psn">Personeelsnummer</label>
-            <input type="text" id="psn"><br>
-            <label for="an">Account naam</label>
-            <input type="text" id="an"><br>
-        </div>
-        <div id="get">
-            <h2>
-                Get Data
-            </h2>
-            <div id="four">
-                <p style="margin-bottom: 0%;">Get</p>
-                <button onclick="send('/admin/exit_code', 'ExitCode')">Exit
-                    Code</button>
-                <button onclick='send("/admin/is_active", "Active")'>Is
-                    active?</button>
-                <button
-                    onclick="send('/admin/calendar', 'GenResponse')">Calendar</button>
-                <button
-                    onclick="send('/admin/logbook', 'string')">Logbook</button><br>
-            </div>
-            <div id="post">
-                <p style="margin-bottom: 0%;margin-top: 0;">Post</p>
-                <button
-                    onclick="send('/admin/start', 'Active', true)">Start</button>
-                <button
-                    onclick="send('/admin/assign_instance', [], true)">Assign</button>
-                <button
-                    onclick="send('/admin/refresh', 'return', true)">Refresh</button>
-                <button
-                    onclick="send('/admin/kuma/reset', 'return', true)">Kuma
-                    reset</button>
-                <button
-                    onclick="send('/admin/kuma/delete', 'return', true)">Kuma
-                    delete</button>
-            </div>
+                    <div id="wrapper">
+                        <div id="div1">
 
-            <textarea id="response" rows="4" cols="50" readonly="readonly">
-</textarea><br>
+                            <div id="get">
+                                <h2>
+                                    Get Data
+                                </h2>
+                                <p style="margin-bottom: 0%;">Get</p>
+                                <button
+                                    onclick="send('/admin/exit_code', 'ExitCode')">Exit
+                                    Code</button>
+                                <button
+                                    onclick='send("/admin/is_active", "Active")'>Is
+                                    active?</button>
+                                <button
+                                    onclick="send('/admin/calendar', 'GenResponse')">Calendar</button>
+                                <button
+                                    onclick="send('/admin/logbook', 'string')">Logbook</button><br>
+                            </div>
+                            <div id="post">
+                                <p
+                                    style="margin-bottom: 0%;margin-top: 0;">Post</p>
+                                <button
+                                    onclick="send('/admin/start', 'Active', true)">Start</button>
+                                <button
+                                    onclick="send('/admin/assign_instance', [], true)">Assign</button>
+                                <button
+                                    onclick="send('/admin/refresh', 'return', true)">Refresh</button>
+                                <button
+                                    onclick="send('/admin/kuma/reset', 'return', true)">Kuma
+                                    reset</button>
+                                <button
+                                    onclick="send('/admin/kuma/delete', 'return', true)">Kuma
+                                    delete</button>
+                            </div>
+                            <div id="list">
+                                <p
+                                    style="margin-bottom: 0%; margin-top: 0;">Multiple</p>
+                                <button
+                                    onclick="send('/admin/emails', 'array', false, true)">Emails</button>
+                                <button
+                                    onclick="send('/admin/names', 'array', false, true)">Namen</button>
+                                <button
+                                    onclick="send('/admin/instances', 'array', false, true)">Instances</button>
+                                <button
+                                    onclick="send('/admin/accounts', 'array', false, true)">Users</button>
+                            </div>
+                            <div id="change">
+                                <h2>
+                                    Wachtwoord veranderen
+                                </h2>
+                                <label for="instance_pwd">Nieuw
+                                    Wachtwoord</label>
+                                <input type="password"
+                                    id="instance_pwd"><br>
+                                <button
+                                    onclick="change_password()">Veranderen</button>
+                            </div>
 
-        </div>
-        <div id="list">
-            <p style="margin-bottom: 0%; margin-top: 0;">Multiple</p>
-            <button
-                onclick="send('/admin/emails', 'array', false, true)">Emails</button>
-            <button
-                onclick="send('/admin/names', 'array', false, true)">Namen</button>
-            <button
-                onclick="send('/admin/instances', 'array', false, true)">Instances</button>
-            <button
-                onclick="send('/admin/accounts', 'array', false, true)">Users</button>
-        </div>
-        <div id="change">
-            <h2>
-                Wachtwoord veranderen
-            </h2>
-            <label for="instance_pwd">Nieuw Wachtwoord</label>
-            <input type="password" id="instance_pwd"><br>
-            <button onclick="change_password()">Veranderen</button>
-        </div>
-
-        <div id="new">
-            <h2>
-                Gebruiker toevoegen
-            </h2>
-            <label for="new_email">Email</label>
-            <input type="email" id="new_email"><br>
-            <label for="new_psn">PSN</label>
-            <input type="text" id="new_psn"><br>
-            <label for="new_pwd">WW</label>
-            <input type="password" id="new_pwd"><br>
-            <label for="exec_int">Uitvoer interval</label>
-            <input type="number" id="exec_int" value="4"><br>
-            <label for="new_shift">Nieuwe diensten</label>
-            <input type="checkbox" id="new_shift">
-            <label for="updated_shift">Geupdate diensten</label>
-            <input type="checkbox" id="updated_shift"><br>
-            <label for="updated_shift">Stop middernacht</label>
-            <input type="checkbox" id="stop_midnight">
-            <label for="updated_shift">Splits middernacht</label>
-            <input type="checkbox" id="split_midnight"><br>
-            <button onclick="add_instance()">Toevoegen</button>
-        </div>
-        <div id="import">
-            <h2>
-                Gebruiker importeren
-            </h2>
-            <label for="import_path">Pad</label>
-            <input type="text" id="import_path"><br>
-            <button onclick="import_user()">Importeren</button>
-        </div>
+                            <div id="new">
+                                <h2>
+                                    Gebruiker toevoegen
+                                </h2>
+                                <label for="new_email">Email</label>
+                                <input type="email" id="new_email"><br>
+                                <label for="new_psn">PSN</label>
+                                <input type="text" id="new_psn"><br>
+                                <label for="new_pwd">WW</label>
+                                <input type="password" id="new_pwd"><br>
+                                <label for="exec_int">Uitvoer
+                                    interval</label>
+                                <input type="number" id="exec_int"
+                                    value="4"><br>
+                                <label for="new_shift">Nieuwe
+                                    diensten</label>
+                                <input type="checkbox" id="new_shift">
+                                <label for="updated_shift">Geupdate
+                                    diensten</label>
+                                <input type="checkbox"
+                                    id="updated_shift"><br>
+                                <label for="updated_shift">Stop
+                                    middernacht</label>
+                                <input type="checkbox" id="stop_midnight">
+                                <label for="updated_shift">Splits
+                                    middernacht</label>
+                                <input type="checkbox"
+                                    id="split_midnight"><br>
+                                <button
+                                    onclick="add_instance()">Toevoegen</button>
+                            </div>
+                            <div id="import">
+                                <h2>
+                                    Gebruiker importeren
+                                </h2>
+                                <label for="import_path">Pad</label>
+                                <input type="text" id="import_path"><br>
+                                <button
+                                    onclick="import_user()">Importeren</button>
+                            </div>
+                        </div>
+                        <div id="div2">
+                            <div id="search">
+                                <h1>
+                                    Search User
+                                </h1>
+                                <label for="email">Email</label>
+                                <input type="text" id="email"><br>
+                                <label for="name">name</label>
+                                <input type="text" id="name"><br>
+                                <label for="psn">Personeelsnummer</label>
+                                <input type="text" id="psn"><br>
+                                <label for="an">Account naam</label>
+                                <input type="text" id="an"><br>
+                            </div>
+                            <div>
+                                <h1>
+                                    Response
+                                </h1>
+                                <textarea id="response" rows="4" cols="50"
+                                    readonly="readonly">
+    </textarea><br>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+            </tr>
+        </table>
     </body>
 </html>

@@ -34,10 +34,9 @@ async function change_password() {
 
 async function import_user() {
     let path = document.getElementById("import_path").value;
-    let url = get_url("/admin/import_instance");
-    let query = new URLSearchParams(
-        path
-    );
+    let url = get_url("/admin/import_user");
+    let query = new URLSearchParams
+    query.path = path
     url = url + "?" + query
     let response = await send_request(url, "POST", "")
     await add_response(response, "string")

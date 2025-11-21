@@ -1,0 +1,40 @@
+#wrapper {
+    /* border: 1px solid blue; */
+
+}
+
+#div1 {
+    display: inline-block;
+    /* border: 1px solid red; */
+
+}
+
+#div2 {
+    vertical-align: top;
+    display: inline-block;
+    /* border: 1px solid green; */
+}
+
+#div3 {
+
+    vertical-align: middle;
+    display: inline-block;
+    /* border: 1px solid green; */
+    height: 100%;
+}
+
+label {
+    display: inline-block;
+    text-align: right;
+    width: 150px;
+    margin-right: 10px;
+}
+
+button {
+    margin-top: 5px;
+}
+
+fieldset {
+    border: none;
+    margin: 0px auto;
+}
