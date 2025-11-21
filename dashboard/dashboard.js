@@ -80,6 +80,7 @@ async function add_instance() {
     user_json.user_properties.send_welcome_mail = true
     user_json.user_properties.split_night_shift = document.getElementById("split_midnight").checked;
     user_json.user_properties.stop_midnight_shift = document.getElementById("stop_midnight").checked;
+    user_json.user_properties.auto_delete_account = true;
 
     let user_url = get_url("/admin/add_instance")
     let response = await send_request(user_url, "POST", JSON.stringify(user_json))
