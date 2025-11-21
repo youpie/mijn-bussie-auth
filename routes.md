@@ -33,6 +33,7 @@
 
 * /instances
 * /users
+* /admin/failed_instances
 * /import_user {"path"}
 
 

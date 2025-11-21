@@ -79,12 +79,16 @@
                                     onclick="send('/admin/calendar', 'GenResponse')">Calendar</button>
                                 <button
                                     onclick="send('/admin/logbook', 'string')">Logbook</button><br>
+                                <button
+                                    onclick="send('/admin/standing', 'string')">Standing</button><br>
                             </div>
                             <div id="post">
                                 <p
                                     style="margin-bottom: 0%;margin-top: 0;">Post</p>
                                 <button
                                     onclick="send('/admin/start', 'Active', true)">Start</button>
+                                <button
+                                    onclick="send('/admin/delete', 'GenResponse', true)">Delete</button>
                                 <button
                                     onclick="send('/admin/assign_instance', [], true)">Assign</button>
                                 <button
@@ -107,6 +111,8 @@
                                     onclick="send('/admin/instances', 'array', false, true)">Instances</button>
                                 <button
                                     onclick="send('/admin/accounts', 'array', false, true)">Users</button>
+                                <button
+                                    onclick="send('/admin/failed_instances', 'string', false, true)">Failed</button>
                             </div>
                             <div id="change">
                                 <h2>
@@ -151,6 +157,18 @@
                                 <button
                                     onclick="add_instance()">Toevoegen</button>
                             </div>
+                            <div id="properties_change">
+                                <h2>
+                                    Opties updaten
+                                </h2>
+                                <textarea id="user_properties" rows="4"
+                                    cols="50">
+    </textarea><br>
+                                <button
+                                    onclick="import_properties()">Inladen</button>
+                                <button
+                                    onclick="upload_properties()">Opslaan</button>
+                            </div>
                             <div id="import">
                                 <h2>
                                     Gebruiker importeren
@@ -161,6 +179,7 @@
                                     onclick="import_user()">Importeren</button>
                             </div>
                         </div>
+
                         <div id="div2">
                             <div id="search">
                                 <h1>

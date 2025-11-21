@@ -42,6 +42,26 @@ async function import_user() {
     await add_response(response, "string")
 }
 
+async function import_properties() {
+    document.getElementById("user_properties").innerText = "";
+    let url = get_url("/admin/get_instance");
+    url = add_admin_query(url);
+    let response = await send_request(url, "GET", "")
+    let full_json = JSON.parse(await response.text())["user_properties"]
+    let user_properties = {
+        "user_properties": full_json
+    }
+    document.getElementById("user_properties").innerText = JSON.stringify(user_properties)
+}
+
+async function upload_properties() {
+    let url = get_url("/admin/update_properties");
+    url = add_admin_query(url);
+    let value = document.getElementById("properties").value
+    let response = await send_request(url, "POST", value)
+    await add_response(response, "return")
+}
+
 async function add_instance() {
     let example_url = get_url("/admin/example");
     let example_response = await send_request(example_url);

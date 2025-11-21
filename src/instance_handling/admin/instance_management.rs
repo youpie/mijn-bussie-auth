@@ -6,6 +6,7 @@ pub fn router() -> Router<Api> {
     Router::new()
         .route("/get_instance", get(self::get::get_instance_data_admin))
         .route("/example", get(self::get::get_example_user))
+        .route("/failed_instances", get(self::get::get_failed_users))
         .route("/add_instance", post(self::post::create_instance_admin))
         .route(
             "/change_instance_password",
@@ -22,16 +23,21 @@ pub fn router() -> Router<Api> {
 }
 
 mod get {
+    use std::collections::HashMap;
+
     use axum::{
         Json,
         extract::{Query, State},
         response::IntoResponse,
     };
+    use entity::user_data;
     use hyper::header;
     use reqwest::StatusCode;
+    use sea_orm::EntityTrait;
+    use serde::Deserialize;
 
     use crate::{
-        instance_handling::{admin::AdminQuery, entity::MijnBussieUser},
+        instance_handling::{admin::AdminQuery, entity::MijnBussieUser, instance_api},
         web::api::Api,
     };
 
@@ -67,6 +73,35 @@ mod get {
             Json(MijnBussieUser::default()),
         )
             .into_response()
+    }
+
+    pub async fn get_failed_users(State(data): State<Api>) -> impl IntoResponse {
+        let db = &data.db;
+        if let Ok(instances) = user_data::Entity::find().all(db).await {
+            let usernames: Vec<String> = instances
+                .into_iter()
+                .map(|instance| instance.user_name)
+                .collect();
+            let mut failed_hashmap = HashMap::new();
+            for username in usernames {
+                _ = instance_api::Instance::get_request(
+                    &username,
+                    instance_api::InstanceGetRequests::ExitCode,
+                )
+                .await
+                .ok()
+                .map(|response| response.1)
+                .is_some_and(|exit_code| {
+                    if exit_code != "OK" {
+                        failed_hashmap.insert(username, exit_code);
+                    }
+                    true
+                });
+            }
+            (StatusCode::OK, Json(failed_hashmap)).into_response()
+        } else {
+            StatusCode::INTERNAL_SERVER_ERROR.into_response()
+        }
     }
 }
 

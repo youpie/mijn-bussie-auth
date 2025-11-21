@@ -26,6 +26,7 @@ pub enum InstanceGetRequests {
     ExitCode,
     Name,
     Calendar,
+    Standing,
 }
 
 #[derive(Debug, Deserialize, AsRefStr)]
@@ -33,6 +34,7 @@ pub enum InstanceGetRequests {
 #[strum(serialize_all = "snake_case")]
 pub enum InstancePostRequests {
     Start,
+    Delete,
 }
 
 pub struct Instance {}
