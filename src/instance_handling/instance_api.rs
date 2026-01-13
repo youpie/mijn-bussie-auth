@@ -35,6 +35,7 @@ pub enum InstanceGetRequests {
 pub enum InstancePostRequests {
     Start,
     Delete,
+    Welcome,
 }
 
 pub struct Instance {}
