@@ -15,7 +15,8 @@
             <!-- Header -->
             <tr>
                 <td
-                    style="background-color:#5F5AD3; color:#ffffff; text-align:center; padding:15px; font-size:24px; font-weight:bold;" id="banner">
+                    style="background-color:#5F5AD3; color:#ffffff; text-align:center; padding:15px; font-size:24px; font-weight:bold;"
+                    id="banner">
                     <table width="100%" cellpadding="0" cellspacing="0">
                         <tr>
                             <td width="50" align="left"
@@ -72,49 +73,52 @@
                                 </h2>
                                 <p style="margin-bottom: 0%;">Get</p>
                                 <button
-                                    onclick="send('/admin/exit_code', 'ExitCode')">Exit
+                                    onclick="send('/admin/exit_code', 'ExitCode', true)">Exit
                                     Code</button>
                                 <button
-                                    onclick='send("/admin/is_active", "Active")'>Is
+                                    onclick='send("/admin/is_active", "Active", true)'>Is
                                     active?</button>
                                 <button
                                     onclick="send('/admin/calendar', 'GenResponse')">Calendar</button>
                                 <button
-                                    onclick="send('/admin/logbook', 'string')">Logbook</button><br>
+                                    onclick="send('/admin/logbook', 'string', true)">Logbook</button><br>
                                 <button
-                                    onclick="send('/admin/standing', 'string')">Standing</button><br>
+                                    onclick="send('/admin/standing', 'string', true)">Standing</button><br>
                             </div>
                             <div id="post">
                                 <p
                                     style="margin-bottom: 0%;margin-top: 0;">Post</p>
                                 <button
-                                    onclick="send('/admin/start', 'Active', true)">Start</button>
+                                    onclick="send('/admin/start', 'Active', true, true)">Start</button>
                                 <button
-                                    onclick="send('/admin/delete', 'GenResponse', true)">Delete</button>
+                                    onclick="send('/admin/delete', 'GenResponse', true, true)">Delete</button>
                                 <button
-                                    onclick="send('/admin/assign_instance', [], true)">Assign</button>
+                                    onclick="send('/admin/welcome', 'GenResponse', true, true)">Welcome</button>
                                 <button
-                                    onclick="send('/admin/refresh', 'return', true)">Refresh</button>
+                                    onclick="send('/admin/assign_instance', [], true, true)">Assign</button>
                                 <button
-                                    onclick="send('/admin/kuma/reset', 'return', true)">Kuma
+                                    onclick="send('/admin/refresh', 'return', true, true)">Refresh</button>
+                                <br>
+                                <button
+                                    onclick="send('/admin/kuma/reset', 'return', true, true)">Kuma
                                     reset</button>
                                 <button
-                                    onclick="send('/admin/kuma/delete', 'return', true)">Kuma
+                                    onclick="send('/admin/kuma/delete', 'return', true, true)">Kuma
                                     delete</button>
                             </div>
                             <div id="list">
                                 <p
                                     style="margin-bottom: 0%; margin-top: 0;">Multiple</p>
                                 <button
-                                    onclick="send('/admin/emails', 'array', false, true)">Emails</button>
+                                    onclick="send('/admin/emails', 'array', false, false, true)">Emails</button>
                                 <button
-                                    onclick="send('/admin/names', 'array', false, true)">Namen</button>
+                                    onclick="send('/admin/names', 'array', false, false, true)">Namen</button>
                                 <button
-                                    onclick="send('/admin/instances', 'array', false, true)">Instances</button>
+                                    onclick="send('/admin/instances', 'array', false, false, true)">Instances</button>
                                 <button
-                                    onclick="send('/admin/accounts', 'array', false, true)">Users</button>
+                                    onclick="send('/admin/accounts', 'array', false, false, true)">Users</button>
                                 <button
-                                    onclick="send('/admin/failed_instances', 'string', false, true)">Failed</button>
+                                    onclick="send('/admin/failed_instances', 'string', true, false, true)">Failed</button>
                             </div>
                             <div id="change">
                                 <h2>
@@ -170,15 +174,6 @@
                                     onclick="import_properties()">Inladen</button>
                                 <button
                                     onclick="upload_properties()">Opslaan</button>
-                            </div>
-                            <div id="import">
-                                <h2>
-                                    Gebruiker importeren
-                                </h2>
-                                <label for="import_path">Pad</label>
-                                <input type="text" id="import_path"><br>
-                                <button
-                                    onclick="import_user()">Importeren</button>
                             </div>
                         </div>
 

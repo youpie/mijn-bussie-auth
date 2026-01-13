@@ -1,13 +1,14 @@
-window.onload = function() {
+window.onload = function () {
     let url = get_url("/me")
-    let response = send_request(url, "GET", [])
-    change_banner(response.status)
+    let response = send_request(url, "GET", null)
+    change_banner(response)
 };
 
-function change_banner(response_status) {
-    if (response_status !== 401) {document.getElementById("banner").style.backgroundColor = "#5F5AD3"}
-    else {document.getElementById("banner").style.backgroundColor = "#990000"}
-    
+async function change_banner(response) {
+    let response_status = (await response).status
+    if (response_status !== 401) { document.getElementById("banner").style.backgroundColor = "#5F5AD3" }
+    else { document.getElementById("banner").style.backgroundColor = "#990000" }
+
 }
 
 async function login(url) {
@@ -19,17 +20,17 @@ async function login(url) {
     }
     let login_url = get_url(url);
     let response = await send_request(login_url, "POST", JSON.stringify(login_request), true)
-    await add_response(response, "")
+    await add_response(response, "", true)
 }
 
-async function send(relative_url, element, post, drop_query) {
+async function send(relative_url, element, include_timestamp, post, drop_query) {
     let url = get_url(relative_url);
     if (!drop_query) url = add_admin_query(url);
     let type = "GET";
     if (post) { type = "POST" };
     let response = await send_request(url, type, "", true);
     if (element) {
-        await add_response(response, element)
+        await add_response(response, element, include_timestamp)
     }
 }
 
@@ -41,7 +42,7 @@ async function change_password() {
         "password": new_password
     };
     let response = await send_request(url, "POST", JSON.stringify(change_request), true);
-    await add_response(response, "")
+    await add_response(response, "", true)
 }
 
 async function change_password_account() {
@@ -61,17 +62,7 @@ async function change_password_account() {
     };
 
     let response = await send_request(url, "POST", JSON.stringify(change_request), true);
-    await add_response(response, "")
-}
-
-async function import_user() {
-    let path = document.getElementById("import_path").value;
-    let url = get_url("/admin/import_user");
-    let query = new URLSearchParams
-    query.path = path
-    url = url + "?" + query
-    let response = await send_request(url, "POST", "")
-    await add_response(response, "string")
+    await add_response(response, "", true)
 }
 
 async function import_properties() {
@@ -89,8 +80,11 @@ async function import_properties() {
 async function upload_properties() {
     let url = get_url("/admin/update_properties");
     url = add_admin_query(url);
-    let value = document.getElementById("properties").value
+    let value = document.getElementById("user_properties").value
     let response = await send_request(url, "POST", value)
+    if (response.status == 200) {
+        document.getElementById("instance_pwd").value = "";
+    }
     await add_response(response, "return")
 }
 
@@ -116,10 +110,16 @@ async function add_instance() {
 
     let user_url = get_url("/admin/add_instance")
     let response = await send_request(user_url, "POST", JSON.stringify(user_json))
-    add_response(response)
+    if (response.status == 200) {
+        document.getElementById("new_email").value = "";
+        document.getElementById("new_psn").value = "";
+        document.getElementById("new_pwd").value = "";
+        document.getElementById("exec_int").value = 4;
+    }
+    add_response(response, null, true)
 }
 
-async function add_response(response, element) {
+async function add_response(response, element, include_timestamp) {
     change_banner(response.status)
     document.getElementById("response").style = ""
     // document.getElementById("response").innerText = "";
@@ -130,12 +130,25 @@ async function add_response(response, element) {
         else document.getElementById("response").innerText = response_text
         document.getElementById("response").style = "color:red;"
     } else {
+        // If response text is empty, show status
+        // If element is array return a formatted json array
+        // If element is string show the response text
+        // If element is return, return the response text
+        // else specify which element to return
         let response_text = await response.text()
-        if (response_text === "" || response_text === "[]") document.getElementById("response").innerHTML = response.status
-        else if (element === "array") document.getElementById("response").innerHTML = (JSON.parse(response_text)).join('\n')
+        let textbox_text;
+        if (response_text === "" || response_text === "[]") textbox_text = response.status
+        else if (element === "array") textbox_text = (JSON.parse(response_text)).join('\n')
         else if (element === "return") return await JSON.parse(response_text);
-        else if (element === "string") document.getElementById("response").innerText = response_text
-        else if (element) document.getElementById("response").innerText = (JSON.parse(response_text))[element]
+        else if (element === "string") textbox_text = response_text
+        else if (element) textbox_text = (JSON.parse(response_text))[element]
+        let timestamp = new Date().toLocaleTimeString()
+        if (include_timestamp) {
+            document.getElementById("response").innerHTML = timestamp + ": " + textbox_text
+        } else {
+            document.getElementById("response").innerHTML = textbox_text
+        }
+
     }
 
 }
