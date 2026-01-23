@@ -2,3 +2,4 @@
 .env
 2*
 cert
+/vendor

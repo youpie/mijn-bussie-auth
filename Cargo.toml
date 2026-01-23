@@ -8,7 +8,7 @@ members = [".", "entity"]
 
 [dependencies]
 entity = { path = "entity" }
-dotenvy = { git = "https://github.com/allan2/dotenvy.git", features = [
+dotenvy = { git = "https://github.com/youpie/dotenvy.git", features = [
     "macros",
 ] }
 simplestcrypt = "0.2.0"
