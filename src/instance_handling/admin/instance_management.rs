@@ -9,7 +9,7 @@ pub fn router() -> Router<Api> {
         .route("/failed_instances", get(self::get::get_failed_users))
         .route("/add_instance", post(self::post::create_instance_admin))
         .route(
-            "/change_instance_password",
+            "/change_information",
             post(self::post::change_instance_password_admin),
         )
         .route(
@@ -119,7 +119,7 @@ mod post {
             admin::AdminQuery,
             entity::{FindByUsername, MijnBussieUser, UserDataModel},
             generic::{
-                change_password::post::{PasswordChange, change_password},
+                change_information::post::{InstanceInformation, change_information},
                 create_instance::post::attach_user_to_instance,
             },
         },
@@ -169,12 +169,12 @@ mod post {
     pub async fn change_instance_password_admin(
         State(data): State<Api>,
         Query(user): Query<AdminQuery>,
-        Json(password): Json<PasswordChange>,
+        Json(password): Json<InstanceInformation>,
     ) -> impl IntoResponse {
         let db = &data.db;
         let instance = user.get_instance_from_query(db).await;
         if let Some(instance) = instance {
-            match change_password(db, &instance, &password).await {
+            match change_information(db, &instance, &password).await {
                 Ok(_) => StatusCode::OK.into_response(),
                 Err(err) => (StatusCode::INTERNAL_SERVER_ERROR, err.to_string()).into_response(),
             }

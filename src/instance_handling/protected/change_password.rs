@@ -14,18 +14,20 @@ mod post {
     use reqwest::StatusCode;
 
     use crate::{
-        instance_handling::generic::change_password::post::{PasswordChange, change_password},
+        instance_handling::generic::change_information::post::{
+            InstanceInformation, change_information,
+        },
         web::{api::Api, user::AuthSession},
     };
 
     pub async fn change_password_protected(
         auth_session: AuthSession,
         State(data): State<Api>,
-        Json(password): Json<PasswordChange>,
+        Json(information): Json<InstanceInformation>,
     ) -> impl IntoResponse {
         let user = auth_session.user.expect("No user in protected space");
         let response = if let Ok(Some(instance_data)) = user.get_instance_data(&data.db).await {
-            match change_password(&data.db, &instance_data, &password).await {
+            match change_information(&data.db, &instance_data, &information).await {
                 Ok(response) => response.into_response(),
                 Err(_) => StatusCode::INTERNAL_SERVER_ERROR.into_response(),
             }

@@ -6,16 +6,17 @@ use bcrypt::DEFAULT_COST;
 use entity::{user_account, user_data};
 use reqwest::StatusCode;
 use sea_orm::ActiveValue::{NotSet, Set};
-use sea_orm::ColumnTrait;
 use sea_orm::ModelTrait;
+use sea_orm::{ColumnTrait, PaginatorTrait};
 use sea_orm::{DatabaseConnection, DerivePartialModel, EntityTrait, QueryFilter};
 use serde::Deserialize;
+use strum::AsRefStr;
 use tokio::task;
 
 use crate::GenResult;
 
-#[derive(strum::EnumString, Debug, Clone, PartialEq, Eq, Hash, Default)]
-pub enum Permissions {
+#[derive(strum::EnumString, AsRefStr, Debug, Clone, PartialEq, Eq, Hash, Default)]
+pub enum Role {
     Admin,
     #[default]
     User,
@@ -34,13 +35,21 @@ impl UserAccount {
             return Err("Empty credentials".into());
         }
 
+        // If it is the first user, it will automatically be made Admin
+        let current_accounts = user_account::Entity::find().count(db).await.unwrap_or(1);
+        let user_role = if current_accounts == 0 {
+            Role::Admin
+        } else {
+            Role::default()
+        };
+
         let password_hash =
             tokio::task::spawn_blocking(|| bcrypt::hash(creds.password, DEFAULT_COST)).await??;
         let account = user_account::ActiveModel {
             account_id: NotSet,
             username: Set(creds.username),
             password_hash: Set(password_hash),
-            role: Set("User".to_owned()),
+            role: Set(user_role.as_ref().to_owned()),
             backend_user: NotSet,
         };
         user_account::Entity::insert(account).exec(db).await?;
@@ -139,14 +148,14 @@ impl AuthnBackend for Backend {
 }
 
 impl AuthzBackend for Backend {
-    type Permission = Permissions;
+    type Permission = Role;
 
     async fn get_user_permissions(
         &self,
         _user: &Self::User,
     ) -> BackendResult<HashSet<Self::Permission>> {
         let mut hash_set = HashSet::new();
-        hash_set.insert(Permissions::from_str(&_user.inner.role).unwrap_or_default());
+        hash_set.insert(Role::from_str(&_user.inner.role).unwrap_or_default());
         Ok(hash_set)
     }
 
@@ -188,7 +197,7 @@ impl GetUser for AuthSession {
     async fn _is_admin(&self) -> bool {
         if let Some(user) = &self.user {
             self.backend
-                .has_perm(user, Permissions::Admin)
+                .has_perm(user, Role::Admin)
                 .await
                 // Dont know the default value of a bool
                 .unwrap_or(false)

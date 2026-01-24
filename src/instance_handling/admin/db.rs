@@ -1,7 +1,4 @@
-use axum::{
-    Router,
-    routing::{get, post},
-};
+use axum::{Router, routing::get};
 
 use crate::{
     instance_handling::admin::db::get::{get_all_instances, get_all_users},
@@ -12,7 +9,7 @@ pub fn router() -> Router<Api> {
     Router::new()
         .route("/instances", get(get_all_instances))
         .route("/users", get(get_all_users))
-        .route("/import_user", post(self::post::import_user))
+    // .route("/import_user", post(self::post::import_user))
 }
 
 mod get {
@@ -67,6 +64,7 @@ mod post {
         path: PathBuf,
     }
 
+    // Importing users is no longer supported
     pub async fn import_user(
         State(data): State<Api>,
         Query(path): Query<PathQuery>,

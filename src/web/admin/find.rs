@@ -10,13 +10,24 @@ pub fn router() -> Router<Api> {
 }
 
 mod get {
-    use axum::{Json, extract::State, response::IntoResponse};
+    use axum::{
+        Json,
+        extract::{Query, State},
+        response::IntoResponse,
+    };
     use hyper::StatusCode;
     use sea_orm::DatabaseConnection;
 
-    use crate::{GenResult, instance_handling::entity::MijnBussieUser, web::api::Api};
+    use crate::{
+        GenResult,
+        instance_handling::{admin::AdminQuery, entity::MijnBussieUser},
+        web::api::Api,
+    };
 
-    pub async fn get_email_list(State(data): State<Api>) -> impl IntoResponse {
+    pub async fn get_email_list(
+        Query(user): Query<AdminQuery>,
+        State(data): State<Api>,
+    ) -> impl IntoResponse {
         let db = &data.db;
         match get_email_list_error(db).await {
             Ok(list) => (StatusCode::OK, Json(list)).into_response(),
@@ -33,7 +44,10 @@ mod get {
         Ok(email_list)
     }
 
-    pub async fn get_name_list(State(data): State<Api>) -> impl IntoResponse {
+    pub async fn get_name_list(
+        Query(user): Query<AdminQuery>,
+        State(data): State<Api>,
+    ) -> impl IntoResponse {
         let db = &data.db;
         match get_name_list_error(db).await {
             Ok(list) => (StatusCode::OK, Json(list)).into_response(),

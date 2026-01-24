@@ -14,7 +14,7 @@ use crate::{
     GenResult, instance_handling,
     web::{
         admin, auth, new_user,
-        user::{Backend, Permissions},
+        user::{Backend, Role},
     },
 };
 
@@ -67,9 +67,9 @@ impl Api {
         let test = self.clone();
         let app = Router::new()
             .nest("/admin", admin::admin_router())
-            .route_layer(permission_required!(Backend, Permissions::Admin))
+            .route_layer(permission_required!(Backend, Role::Admin))
             .merge(instance_handling::router::protected_router())
-            .merge(super::protected::router())
+            .merge(super::protected::protected_router())
             .route_layer(login_required!(Backend))
             .merge(auth::router())
             .merge(new_user::router())

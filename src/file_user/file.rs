@@ -92,6 +92,7 @@ pub fn load_user(
         name: Set(name.map(|name| encrypt_value(&name).unwrap_or_default())),
         custom_general_properties: NotSet,
         user_properties: NotSet,
+        last_system_execution_date: NotSet,
         last_execution_date: NotSet,
         last_succesfull_sign_in_date: NotSet,
         creation_date: Set(chrono::offset::Utc::now().naive_utc()),

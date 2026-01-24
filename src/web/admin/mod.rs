@@ -1,4 +1,5 @@
 use axum::Router;
+use sea_orm::DatabaseConnection;
 
 use crate::{instance_handling, web::api::Api};
 
@@ -11,3 +12,5 @@ pub fn admin_router() -> Router<Api> {
         .merge(self::find::router())
         .merge(self::account_handling::router())
 }
+
+fn find_user_account(db: &DatabaseConnection, query: AdminQuery)
