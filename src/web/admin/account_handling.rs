@@ -1,6 +1,6 @@
 use axum::{
     Router,
-    routing::{delete, get, post},
+    routing::{get, post},
 };
 
 use crate::web::api::Api;
@@ -10,7 +10,7 @@ pub fn router() -> Router<Api> {
         .route("/change_password", post(self::post::change_password_admin))
         .route("/role", post(self::post::change_role))
         .route("/role", get(self::get::role))
-        .route("/delete_account", delete(self::delete::delete_account))
+        .route("/delete_account", post(self::delete::delete_account))
 }
 
 mod get {
@@ -163,7 +163,7 @@ mod delete {
             .await
             .unwrap_or(authenticated_user.clone());
 
-        if current_accounts == 1 && user_account.inner.username == authenticated_user.inner.username
+        if current_accounts != 1 && user_account.inner.username == authenticated_user.inner.username
         {
             return (StatusCode::NOT_ACCEPTABLE, "Can't delete own account").into_response();
         }
