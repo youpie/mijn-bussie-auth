@@ -79,7 +79,7 @@ mod post {
 
         // If instance passthrough request is Delete, the user must first be unassigned as to prevent the database from removing the account (admin only)
         if request_type == InstancePostRequests::Delete {
-            let user_account = user.get_user_account(db).await;
+            let user_account = user.get_user_account(db, true).await;
             if let Some(account) = user_account {
                 _ = remove_user_from_instance(db, &account).await;
             }

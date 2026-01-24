@@ -76,7 +76,7 @@ mod get {
 
         // If a user account has been specified. Print only that user
         let specific_user = users
-            .get_user_account(db)
+            .get_user_account(db, true)
             .await
             .and_then(|account| Some(account.inner.username.clone()));
         let mut account_combination = vec![];

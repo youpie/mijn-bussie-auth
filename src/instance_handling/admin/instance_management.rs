@@ -160,7 +160,7 @@ mod post {
         Query(user): Query<AdminQuery>,
     ) -> impl IntoResponse {
         let db = &data.db;
-        if let Some(user_account) = user.get_user_account(db).await
+        if let Some(user_account) = user.get_user_account(db, false).await
             && let Some(instance_name) = user.instance_name
             && let Some(instance_data) = UserDataModel::find_by_username(db, &instance_name).await
         {
@@ -178,7 +178,7 @@ mod post {
         Query(user): Query<AdminQuery>,
     ) -> impl IntoResponse {
         let db = &data.db;
-        if let Some(user_account) = user.get_user_account(db).await {
+        if let Some(user_account) = user.get_user_account(db, true).await {
             match remove_user_from_instance(db, &user_account).await {
                 Ok(_) => StatusCode::OK.into_response(),
                 Err(err) => (StatusCode::INTERNAL_SERVER_ERROR, err.to_string()).into_response(),

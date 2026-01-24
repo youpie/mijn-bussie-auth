@@ -24,18 +24,53 @@ pub struct AdminQuery {
 }
 
 impl AdminQuery {
-    pub async fn get_user_account(&self, db: &DatabaseConnection) -> Option<UserAccount> {
+    pub async fn get_user_account(
+        &self,
+        db: &DatabaseConnection,
+        find_by_instance: bool,
+    ) -> Option<UserAccount> {
         if let Some(account_name) = &self.account_name {
-            user_account::Entity::find()
-                .filter(user_account::Column::Username.eq(account_name.clone()))
+            let accounts = user_account::Entity::find()
                 .into_partial_model::<UserAccount>()
-                .one(db)
+                .all(db)
                 .await
                 .ok()
-                .flatten()
+                .and_then(|account| {
+                    Some(
+                        account
+                            .into_iter()
+                            .filter(|account| {
+                                account.inner.username.to_lowercase() == account_name.to_lowercase()
+                            })
+                            .collect::<Vec<_>>(),
+                    )
+                });
+            accounts.and_then(|accounts| accounts.into_iter().nth(0))
+        } else if find_by_instance {
+            self.get_account_from_instance(db).await
         } else {
             None
         }
+    }
+
+    async fn get_account_from_instance(&self, db: &DatabaseConnection) -> Option<UserAccount> {
+        let matching_instances = self.get_instance_name(db).await;
+        let mut matching_accounts = vec![];
+        for instance in matching_instances {
+            let accounts = user_data::Entity::find()
+                .find_also_related(user_account::Entity)
+                .filter(user_data::Column::UserName.eq(instance))
+                .one(db)
+                .await
+                .ok()
+                .flatten();
+            if let Some((_model, Some(account))) = accounts {
+                matching_accounts.push(UserAccount {
+                    inner: account.clone(),
+                });
+            }
+        }
+        matching_accounts.first().cloned()
     }
 
     async fn get_instance_from_account_name(

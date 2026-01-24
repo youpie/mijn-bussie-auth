@@ -27,7 +27,7 @@ mod get {
         Query(query): Query<AdminQuery>,
     ) -> impl IntoResponse {
         match query
-            .get_user_account(&data.db)
+            .get_user_account(&data.db, true)
             .await
             .and_then(|account| Some(account.inner.role))
         {
@@ -159,7 +159,7 @@ mod delete {
         // Only allow the admin to delete their account if they are the only user
         let current_accounts = user_account::Entity::find().count(db).await.unwrap_or(0);
         let user_account = query
-            .get_user_account(db)
+            .get_user_account(db, true)
             .await
             .unwrap_or(authenticated_user.clone());
 
