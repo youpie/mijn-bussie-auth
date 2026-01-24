@@ -86,7 +86,7 @@ async function change_password_account() {
 
 async function change_role_account() {
     let new_role = document.getElementById("account_role").value;
-    let url = get_url("/admin/change_role");
+    let url = get_url("/admin/role");
 
     let account_name = document.getElementById("username").value;
 

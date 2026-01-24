@@ -18,7 +18,7 @@ mod get {
     };
     use entity::user_account;
     use hyper::StatusCode;
-    use sea_orm::{DatabaseConnection, EntityTrait, QuerySelect};
+    use sea_orm::{DatabaseConnection, EntityTrait};
 
     use crate::{
         instance_handling::{admin::AdminQuery, entity::MijnBussieInstance},
@@ -69,10 +69,12 @@ mod get {
             StatusCode::OK,
             Json(
                 user_account::Entity::find()
-                    .column(user_account::Column::Username)
                     .all(db)
                     .await
-                    .ok(),
+                    .unwrap_or_default()
+                    .iter()
+                    .map(|account| account.username.clone())
+                    .collect::<Vec<String>>(),
             ),
         )
             .into_response()
