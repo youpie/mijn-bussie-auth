@@ -9,7 +9,7 @@ pub fn router() -> Router<Api> {
         .route("/failed_instances", get(self::get::get_failed_users))
         .route("/add_instance", post(self::post::create_instance_admin))
         .route(
-            "/change_information",
+            "/change_instance_information",
             post(self::post::change_instance_password_admin),
         )
         .route(

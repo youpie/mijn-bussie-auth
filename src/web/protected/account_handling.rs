@@ -1,12 +1,36 @@
-use axum::{Router, routing::post};
+use axum::{
+    Router,
+    routing::{get, post},
+};
 
 use crate::web::api::Api;
 
 pub fn router() -> Router<Api> {
-    Router::new().route(
-        "/change_password",
-        post(self::post::change_password_protected),
-    )
+    Router::new()
+        .route(
+            "/change_password",
+            post(self::post::change_password_protected),
+        )
+        .route("/role", get(self::get::role))
+}
+
+mod get {
+    use axum::response::IntoResponse;
+    use hyper::StatusCode;
+
+    use crate::web::user::AuthSession;
+
+    pub async fn role(auth_session: AuthSession) -> impl IntoResponse {
+        (
+            StatusCode::OK,
+            auth_session
+                .user
+                .expect("No user in protected space")
+                .inner
+                .role,
+        )
+            .into_response()
+    }
 }
 
 mod post {
@@ -15,7 +39,7 @@ mod post {
 
     use crate::web::{
         api::Api,
-        generic::change_password::{PasswordChange, change_password},
+        generic::account_management::{PasswordChange, change_password},
         user::AuthSession,
     };
 

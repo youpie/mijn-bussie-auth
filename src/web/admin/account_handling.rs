@@ -1,11 +1,40 @@
-use axum::{Router, routing::post};
+use axum::{
+    Router,
+    routing::{get, post},
+};
 
 use crate::web::api::Api;
 
 pub fn router() -> Router<Api> {
     Router::new()
         .route("/change_password", post(self::post::change_password_admin))
-        .route("/change_role", post(self::post::change_role))
+        .route("/role", post(self::post::change_role))
+        .route("/role", get(self::get::role))
+}
+
+mod get {
+    use axum::{
+        extract::{Query, State},
+        response::IntoResponse,
+    };
+    use hyper::StatusCode;
+
+    use crate::{instance_handling::admin::AdminQuery, web::api::Api};
+
+    pub async fn role(
+        State(data): State<Api>,
+        Query(query): Query<AdminQuery>,
+    ) -> impl IntoResponse {
+        match query
+            .get_user_account(&data.db)
+            .await
+            .and_then(|account| Some(account.inner.role))
+        {
+            Some(role) => (StatusCode::OK, role),
+            None => (StatusCode::NOT_FOUND, "Account niet gevonden".to_owned()),
+        }
+        .into_response()
+    }
 }
 
 mod post {
@@ -26,7 +55,7 @@ mod post {
         instance_handling::admin::AdminQuery,
         web::{
             api::Api,
-            generic::change_password::{PasswordChange, change_password},
+            generic::account_management::{PasswordChange, change_password},
             user::{AuthSession, Role},
         },
     };

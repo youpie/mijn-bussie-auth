@@ -34,14 +34,33 @@ async function send(relative_url, element, include_timestamp, post, drop_query) 
     }
 }
 
-async function change_password() {
+async function change_instance_properties() {
     let new_password = document.getElementById("instance_pwd").value;
-    let url = get_url("/admin/change_instance_password");
+    let new_email = document.getElementById("instance_email").value;
+    let new_psn = document.getElementById("instance_personeelsnummer").value;
+    let new_name = document.getElementById("instance_name").value;
+    let url = get_url("/admin/change_instance_information");
     url = add_admin_query(url);
-    var change_request = {
-        "password": new_password
+    var change_request = {};
+    if (new_password != "") {
+        change_request.password = new_password;
+    };
+    if (new_email != "") {
+        change_request.email = new_email;
+    };
+    if (new_psn != "") {
+        change_request.personeelsnummer = new_psn;
+    };
+    if (new_name != "") {
+        change_request.username = new_name;
     };
     let response = await send_request(url, "POST", JSON.stringify(change_request), true);
+    if (response.status == 200) {
+        document.getElementById("instance_pwd").value = ""
+        document.getElementById("instance_email").value = ""
+        document.getElementById("instance_personeelsnummer").value = ""
+        document.getElementById("instance_name").value = ""
+    }
     await add_response(response, "", true)
 }
 
@@ -59,6 +78,26 @@ async function change_password_account() {
 
     var change_request = {
         "password": new_password
+    };
+
+    let response = await send_request(url, "POST", JSON.stringify(change_request), true);
+    await add_response(response, "", true)
+}
+
+async function change_role_account() {
+    let new_role = document.getElementById("account_role").value;
+    let url = get_url("/admin/change_role");
+
+    let account_name = document.getElementById("username").value;
+
+    let params = {};
+    params.account_name = account_name;
+
+    let query = new URLSearchParams(params);
+    url = url + "?" + query
+
+    var change_request = {
+        "role": new_role
     };
 
     let response = await send_request(url, "POST", JSON.stringify(change_request), true);

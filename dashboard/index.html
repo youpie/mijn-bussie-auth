@@ -120,16 +120,34 @@
                                 <button
                                     onclick="send('/admin/failed_instances', 'string', true, false, true)">Failed</button>
                             </div>
+                            <div id="account">
+                                <p
+                                    style="margin-bottom: 0%; margin-top: 0;">Account</p>
+                                <button
+                                    onclick="send('/admin/role', 'string', true, false, false)">Rol</button>
+                            </div>
                             <div id="change">
                                 <h2>
-                                    Wachtwoord veranderen
+                                    Gegevens veranderen
                                 </h2>
                                 <label for="instance_pwd">Nieuw
                                     Wachtwoord</label>
                                 <input type="password"
                                     id="instance_pwd"><br>
+                                <label for="instance_email">Nieuw
+                                    Email</label>
+                                <input type="text"
+                                    id="instance_email"><br>
+                                <label for="instance_personeelsnummer">Nieuw
+                                    PSN</label>
+                                <input type="text"
+                                    id="instance_personeelsnummer"><br>
+                                <label for="instance_name">Nieuw
+                                    naam</label>
+                                <input type="text"
+                                    id="instance_name"><br>
                                 <button
-                                    onclick="change_password()">Veranderen</button>
+                                    onclick="change_instance_properties()">Veranderen</button>
                             </div>
 
                             <div id="new">
@@ -175,6 +193,17 @@
                                 <button
                                     onclick="upload_properties()">Opslaan</button>
                             </div>
+                            <div id="properties_change">
+                                <h2>
+                                    Rol veranderen
+                                </h2>
+                                <label for="account_role">Nieuwe
+                                    Rol</label>
+                                <input type="text"
+                                    id="account_role"><br>
+                                <button
+                                    onclick="upload_properties()">Wijzig</button>
+                            </div>
                         </div>
 
                         <div id="div2">
@@ -186,7 +215,7 @@
                                 <input type="text" id="email"><br>
                                 <label for="name">name</label>
                                 <input type="text" id="name"><br>
-                                <label for="psn">Personeelsnummer</label>
+                                <label for="psn">Instance naam</label>
                                 <input type="text" id="psn"><br>
                                 <label for="an">Account naam</label>
                                 <input type="text" id="an"><br>

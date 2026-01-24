@@ -1,1 +1,1 @@
-pub mod change_password;
+pub mod account_management;

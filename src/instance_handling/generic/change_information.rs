@@ -11,8 +11,8 @@ pub mod post {
     pub struct InstanceInformation {
         password: Option<String>,
         email: Option<String>,
-        username: Option<String>,
         personeelsnummer: Option<String>,
+        username: Option<String>,
     }
 
     // Generic function for chaning user properties
