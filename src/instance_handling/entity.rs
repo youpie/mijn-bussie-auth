@@ -21,7 +21,7 @@ pub type UserDataModel = user_data::Model;
 /// * All id's
 #[derive(Debug, DerivePartialModel, Deserialize, Serialize, Clone, Default)]
 #[sea_orm(entity = "entity::user_data::Entity")]
-pub struct MijnBussieUser {
+pub struct MijnBussieInstance {
     #[serde(default)]
     pub user_data_id: i32,
     #[serde(default)]
@@ -38,7 +38,7 @@ pub struct MijnBussieUser {
     pub user_properties: user_properties::Model,
 }
 
-impl MijnBussieUser {
+impl MijnBussieInstance {
     pub async fn get_id_from_personeelsnummer(
         db: &DatabaseConnection,
         personeelsnummer: &str,
@@ -73,39 +73,39 @@ impl MijnBussieUser {
     /// **Wont deserialize name**
     pub fn _decrypt_values(&self) -> GenResult<Self> {
         let mut clone = self.clone();
-        clone.email = decrypt_value(&self.email)?;
+        clone.email = decrypt_value(&self.email, false)?;
         // clone.name = decrypt_value(&self.name)?;
-        clone.password = decrypt_value(&self.password)?;
-        clone.personeelsnummer = decrypt_value(&self.personeelsnummer)?;
+        clone.password = decrypt_value(&self.password, false)?;
+        clone.personeelsnummer = decrypt_value(&self.personeelsnummer, false)?;
         Ok(clone)
     }
 
     pub fn get_name(&self) -> GenResult<String> {
         match &self.name {
-            Some(name) => Ok(decrypt_value(name)?),
+            Some(name) => Ok(decrypt_value(name, false)?),
             None => Err("Empty name".into()),
         }
     }
 
     pub fn get_email(&self) -> GenResult<String> {
-        Ok(decrypt_value(&self.email)?)
+        Ok(decrypt_value(&self.email, false)?)
     }
 
-    pub async fn create_and_insert_models(
+    pub async fn create_and_insert_instance(
         self,
         db: &DatabaseConnection,
         custom_username: bool,
-    ) -> GenResult<UserDataModel> {
-        // Remove leading 0's from
+    ) -> GenResult<(UserDataModel, bool)> {
+        // Remove leading 0's from username
         let user_name = if custom_username && !self.user_name.is_empty() {
-            self.user_name
+            self.user_name.clone()
         } else {
             self.personeelsnummer.parse::<u64>()?.to_string()
         };
         let execution_time = random_str::get_int(0, 59);
         let random_filename = random_str::get_string(12, true, true, true, false);
 
-        let mut user_properties = self.user_properties.into_active_model();
+        let mut user_properties = self.user_properties.clone().into_active_model();
         user_properties.execution_minute = Set(execution_time);
         user_properties.user_properties_id = NotSet;
 
@@ -121,9 +121,38 @@ impl MijnBussieUser {
             name: NotSet,
             last_execution_date: NotSet,
             last_succesfull_sign_in_date: NotSet,
+            last_system_execution_date: NotSet,
             creation_date: Set(chrono::offset::Utc::now().naive_utc()),
         };
-        add_new_user_to_db(db, user_properties, user_data).await
+        match self.find_existing_instance(db).await {
+            Some(matching_instance) => Ok((matching_instance, true)),
+            None => Ok((
+                add_new_user_to_db(db, user_properties, user_data).await?,
+                false,
+            )),
+        }
+    }
+
+    pub async fn find_existing_instance(&self, db: &DatabaseConnection) -> Option<UserDataModel> {
+        let existing_instances = user_data::Entity::find().all(db).await.ok()?;
+        let matching_instance = existing_instances
+            .iter()
+            .find(|instance| instance.user_name == self.user_name);
+        if let Some(instance_match) = matching_instance {
+            println!(
+                "An existing instance with the same username has been found, determining if actual match"
+            );
+            let match_email = decrypt_value(&instance_match.email, true).ok()?;
+            let match_personeelsnummer =
+                decrypt_value(&instance_match.personeelsnummer, true).ok()?;
+            if match_email == self.email.to_lowercase()
+                && match_personeelsnummer == self.personeelsnummer.to_lowercase()
+            {
+                println!("It is actually a match!");
+                return Some(instance_match.to_owned());
+            }
+        }
+        None
     }
 
     pub async fn update_properties(self, db: &DatabaseConnection) -> GenResult<()> {

@@ -9,12 +9,16 @@ pub fn router() -> Router<Api> {
         .route("/failed_instances", get(self::get::get_failed_users))
         .route("/add_instance", post(self::post::create_instance_admin))
         .route(
-            "/change_instance_password",
+            "/change_instance_information",
             post(self::post::change_instance_password_admin),
         )
         .route(
             "/assign_instance",
             post(self::post::assign_instance_to_account),
+        )
+        .route(
+            "/unassign_instance",
+            post(self::post::unassign_instance_to_account),
         )
         .route(
             "/update_properties",
@@ -37,7 +41,7 @@ mod get {
     use serde_json::Value;
 
     use crate::{
-        instance_handling::{admin::AdminQuery, entity::MijnBussieUser, instance_api},
+        instance_handling::{admin::AdminQuery, entity::MijnBussieInstance, instance_api},
         web::api::Api,
     };
 
@@ -52,7 +56,7 @@ mod get {
                 Err(names) => return names.into_response(),
             };
 
-        match MijnBussieUser::find_by_username(db, &instance_name).await {
+        match MijnBussieInstance::find_by_username(db, &instance_name).await {
             Some(instance_data) => (
                 StatusCode::OK,
                 serde_json::to_string_pretty(&instance_data).unwrap(),
@@ -70,7 +74,7 @@ mod get {
         (
             StatusCode::OK,
             [(header::CONTENT_TYPE, "application/json")],
-            Json(MijnBussieUser::default()),
+            Json(MijnBussieInstance::default()),
         )
             .into_response()
     }
@@ -117,10 +121,10 @@ mod post {
     use crate::{
         instance_handling::{
             admin::AdminQuery,
-            entity::{FindByUsername, MijnBussieUser, UserDataModel},
+            entity::{FindByUsername, MijnBussieInstance, UserDataModel},
             generic::{
-                change_password::post::{PasswordChange, change_password},
-                create_instance::post::attach_user_to_instance,
+                change_information::post::{InstanceInformation, change_information},
+                create_instance::post::{attach_user_to_instance, remove_user_from_instance},
             },
         },
         web::api::Api,
@@ -128,7 +132,7 @@ mod post {
 
     pub async fn update_properties_admin(
         State(data): State<Api>,
-        Json(instance): Json<MijnBussieUser>,
+        Json(instance): Json<MijnBussieInstance>,
     ) -> impl IntoResponse {
         let db = &data.db;
         match instance.update_properties(db).await {
@@ -139,10 +143,13 @@ mod post {
 
     pub async fn create_instance_admin(
         State(data): State<Api>,
-        Json(instance): Json<MijnBussieUser>,
+        Json(instance): Json<MijnBussieInstance>,
     ) -> impl IntoResponse {
         let db = &data.db;
-        match MijnBussieUser::create_and_insert_models(instance, db, true).await {
+        match MijnBussieInstance::create_and_insert_instance(instance, db, true).await {
+            Ok(result) if result.1 => {
+                (StatusCode::OK, "An existing instance as already found").into_response()
+            }
             Ok(_) => StatusCode::OK.into_response(),
             Err(err) => (StatusCode::INTERNAL_SERVER_ERROR, err.to_string()).into_response(),
         }
@@ -153,7 +160,7 @@ mod post {
         Query(user): Query<AdminQuery>,
     ) -> impl IntoResponse {
         let db = &data.db;
-        if let Some(user_account) = user.get_user_account(db).await
+        if let Some(user_account) = user.get_user_account(db, false).await
             && let Some(instance_name) = user.instance_name
             && let Some(instance_data) = UserDataModel::find_by_username(db, &instance_name).await
         {
@@ -166,15 +173,30 @@ mod post {
         }
     }
 
+    pub async fn unassign_instance_to_account(
+        State(data): State<Api>,
+        Query(user): Query<AdminQuery>,
+    ) -> impl IntoResponse {
+        let db = &data.db;
+        if let Some(user_account) = user.get_user_account(db, true).await {
+            match remove_user_from_instance(db, &user_account).await {
+                Ok(_) => StatusCode::OK.into_response(),
+                Err(err) => (StatusCode::INTERNAL_SERVER_ERROR, err.to_string()).into_response(),
+            }
+        } else {
+            StatusCode::INTERNAL_SERVER_ERROR.into_response()
+        }
+    }
+
     pub async fn change_instance_password_admin(
         State(data): State<Api>,
         Query(user): Query<AdminQuery>,
-        Json(password): Json<PasswordChange>,
+        Json(password): Json<InstanceInformation>,
     ) -> impl IntoResponse {
         let db = &data.db;
         let instance = user.get_instance_from_query(db).await;
         if let Some(instance) = instance {
-            match change_password(db, &instance, &password).await {
+            match change_information(db, &instance, &password).await {
                 Ok(_) => StatusCode::OK.into_response(),
                 Err(err) => (StatusCode::INTERNAL_SERVER_ERROR, err.to_string()).into_response(),
             }

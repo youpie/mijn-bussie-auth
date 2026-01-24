@@ -18,12 +18,8 @@ mod post {
         Json(user): Json<Credentials>,
     ) -> impl IntoResponse {
         match UserAccount::add_user(&data.db, user).await {
-            Ok(_) => StatusCode::OK,
-            Err(error) => {
-                println!("{}", error.to_string());
-                StatusCode::NOT_ACCEPTABLE
-            }
+            Ok(_) => StatusCode::OK.into_response(),
+            Err(error) => (StatusCode::NOT_ACCEPTABLE, error.to_string()).into_response(),
         }
-        .into_response()
     }
 }

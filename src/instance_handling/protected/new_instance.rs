@@ -15,7 +15,7 @@ mod post {
 
     use crate::{
         instance_handling::{
-            entity::MijnBussieUser, generic::create_instance::post::create_instance_and_attach,
+            entity::MijnBussieInstance, generic::create_instance::post::create_instance_and_attach,
         },
         web::{
             api::Api,
@@ -26,7 +26,7 @@ mod post {
     pub async fn create_instance_and_attach_protected(
         auth_session: AuthSession,
         State(data): State<Api>,
-        Json(instance): Json<MijnBussieUser>,
+        Json(instance): Json<MijnBussieInstance>,
     ) -> impl IntoResponse {
         let db = &data.db;
 
@@ -36,7 +36,7 @@ mod post {
         };
 
         // If personeelsnummer already exists, don't create this instance
-        if MijnBussieUser::get_id_from_personeelsnummer(db, &instance.personeelsnummer)
+        if MijnBussieInstance::get_id_from_personeelsnummer(db, &instance.personeelsnummer)
             .await
             .ok()
             .is_some()

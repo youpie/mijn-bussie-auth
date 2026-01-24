@@ -91,45 +91,70 @@
                                 <button
                                     onclick="send('/admin/start', 'Active', true, true)">Start</button>
                                 <button
-                                    onclick="send('/admin/delete', 'GenResponse', true, true)">Delete</button>
+                                    onclick="send('/admin/delete', 'GenResponse', true, true)">Delete
+                                    Instance</button>
                                 <button
-                                    onclick="send('/admin/welcome', 'GenResponse', true, true)">Welcome</button>
+                                    onclick="send('/admin/delete_account', 'string', true, true)">Delete
+                                    Account</button>
+                                <button
+                                    onclick="send('/admin/welcome', 'GenResponse', true, true)">Welcome</button><br>
                                 <button
                                     onclick="send('/admin/assign_instance', [], true, true)">Assign</button>
                                 <button
-                                    onclick="send('/admin/refresh', 'return', true, true)">Refresh</button>
-                                <br>
+                                    onclick="send('/admin/unassign_instance', [], true, true)">Unassign</button>
+                                <button
+                                    onclick="send('/admin/refresh', 'return', true, true)">Refresh</button><br>
+
                                 <button
                                     onclick="send('/admin/kuma/reset', 'return', true, true)">Kuma
                                     reset</button>
                                 <button
                                     onclick="send('/admin/kuma/delete', 'return', true, true)">Kuma
                                     delete</button>
+
                             </div>
                             <div id="list">
                                 <p
                                     style="margin-bottom: 0%; margin-top: 0;">Multiple</p>
                                 <button
-                                    onclick="send('/admin/emails', 'array', false, false, true)">Emails</button>
+                                    onclick="send('/admin/emails', 'array', false, false, false)">Emails</button>
                                 <button
-                                    onclick="send('/admin/names', 'array', false, false, true)">Namen</button>
+                                    onclick="send('/admin/names', 'array', false, false, false)">Namen</button>
                                 <button
-                                    onclick="send('/admin/instances', 'array', false, false, true)">Instances</button>
+                                    onclick="send('/admin/instances', 'array', false, false, false)">Instances</button>
                                 <button
-                                    onclick="send('/admin/accounts', 'array', false, false, true)">Users</button>
+                                    onclick="send('/admin/accounts', 'array', false, false, false)">Accounts</button>
                                 <button
                                     onclick="send('/admin/failed_instances', 'string', true, false, true)">Failed</button>
                             </div>
+                            <div id="account">
+                                <p
+                                    style="margin-bottom: 0%; margin-top: 0;">Account</p>
+                                <button
+                                    onclick="send('/admin/role', 'string', true, false, false)">Rol</button>
+                            </div>
                             <div id="change">
                                 <h2>
-                                    Wachtwoord veranderen
+                                    Gegevens veranderen
                                 </h2>
                                 <label for="instance_pwd">Nieuw
                                     Wachtwoord</label>
                                 <input type="password"
                                     id="instance_pwd"><br>
+                                <label for="instance_email">Nieuw
+                                    Email</label>
+                                <input type="text"
+                                    id="instance_email"><br>
+                                <label for="instance_personeelsnummer">Nieuw
+                                    PSN</label>
+                                <input type="text"
+                                    id="instance_personeelsnummer"><br>
+                                <label for="instance_name">Nieuw
+                                    naam</label>
+                                <input type="text"
+                                    id="instance_name"><br>
                                 <button
-                                    onclick="change_password()">Veranderen</button>
+                                    onclick="change_instance_properties()">Veranderen</button>
                             </div>
 
                             <div id="new">
@@ -175,6 +200,17 @@
                                 <button
                                     onclick="upload_properties()">Opslaan</button>
                             </div>
+                            <div id="properties_change">
+                                <h2>
+                                    Rol veranderen
+                                </h2>
+                                <label for="account_role">Nieuwe
+                                    Rol</label>
+                                <input type="text"
+                                    id="account_role"><br>
+                                <button
+                                    onclick="change_role_account()">Wijzig</button>
+                            </div>
                         </div>
 
                         <div id="div2">
@@ -186,7 +222,7 @@
                                 <input type="text" id="email"><br>
                                 <label for="name">name</label>
                                 <input type="text" id="name"><br>
-                                <label for="psn">Personeelsnummer</label>
+                                <label for="psn">Instance naam</label>
                                 <input type="text" id="psn"><br>
                                 <label for="an">Account naam</label>
                                 <input type="text" id="an"><br>

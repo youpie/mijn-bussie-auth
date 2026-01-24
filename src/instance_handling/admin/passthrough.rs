@@ -64,6 +64,7 @@ mod post {
     use crate::{
         instance_handling::{
             admin::AdminQuery,
+            generic::create_instance::post::remove_user_from_instance,
             instance_api::{self, Instance, InstancePostRequests, KumaRequest},
         },
         web::api::Api,
@@ -75,6 +76,15 @@ mod post {
         Query(user): Query<AdminQuery>,
     ) -> impl IntoResponse {
         let db = &data.db;
+
+        // If instance passthrough request is Delete, the user must first be unassigned as to prevent the database from removing the account (admin only)
+        if request_type == InstancePostRequests::Delete {
+            let user_account = user.get_user_account(db, true).await;
+            if let Some(account) = user_account {
+                _ = remove_user_from_instance(db, &account).await;
+            }
+        }
+
         let instance_name =
             match AdminQuery::map_instance_query_result(user.get_instance_name(db).await) {
                 Ok(name) => name,

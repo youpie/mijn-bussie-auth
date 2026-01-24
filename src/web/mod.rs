@@ -1,6 +1,7 @@
 mod admin;
 pub mod api;
 mod auth;
+mod generic;
 mod new_user;
-pub mod user;
 mod protected;
+pub mod user;
