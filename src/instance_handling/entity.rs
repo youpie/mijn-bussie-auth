@@ -73,22 +73,22 @@ impl MijnBussieInstance {
     /// **Wont deserialize name**
     pub fn _decrypt_values(&self) -> GenResult<Self> {
         let mut clone = self.clone();
-        clone.email = decrypt_value(&self.email)?;
+        clone.email = decrypt_value(&self.email, false)?;
         // clone.name = decrypt_value(&self.name)?;
-        clone.password = decrypt_value(&self.password)?;
-        clone.personeelsnummer = decrypt_value(&self.personeelsnummer)?;
+        clone.password = decrypt_value(&self.password, false)?;
+        clone.personeelsnummer = decrypt_value(&self.personeelsnummer, false)?;
         Ok(clone)
     }
 
     pub fn get_name(&self) -> GenResult<String> {
         match &self.name {
-            Some(name) => Ok(decrypt_value(name)?),
+            Some(name) => Ok(decrypt_value(name, false)?),
             None => Err("Empty name".into()),
         }
     }
 
     pub fn get_email(&self) -> GenResult<String> {
-        Ok(decrypt_value(&self.email)?)
+        Ok(decrypt_value(&self.email, false)?)
     }
 
     pub async fn create_and_insert_models(

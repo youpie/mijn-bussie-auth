@@ -63,21 +63,19 @@ mod get {
             .into_response()
     }
 
-    pub async fn get_account_list(State(data): State<Api>) -> impl IntoResponse {
+    pub async fn get_account_list(
+        State(data): State<Api>,
+        Query(users): Query<AdminQuery>,
+    ) -> impl IntoResponse {
         let db = &data.db;
-        (
-            StatusCode::OK,
-            Json(
-                user_account::Entity::find()
-                    .all(db)
-                    .await
-                    .unwrap_or_default()
-                    .iter()
-                    .map(|account| account.username.clone())
-                    .collect::<Vec<String>>(),
-            ),
-        )
-            .into_response()
+        let account_names = user_account::Entity::find()
+            .all(db)
+            .await
+            .unwrap_or_default()
+            .iter()
+            .map(|account| (account.username.clone(), account.role.clone()))
+            .collect::<Vec<(String, String)>>();
+        (StatusCode::OK, Json(account_names)).into_response()
     }
 
     async fn get_users(

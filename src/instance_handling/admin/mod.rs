@@ -42,9 +42,27 @@ impl AdminQuery {
         &self,
         db: &DatabaseConnection,
     ) -> Option<UserDataModel> {
-        if let Some(account_name) = &self.account_name {
+        // Find all matches case insensitive
+        if let Some(wanted_account_name) = &self.account_name {
+            let accounts = user_account::Entity::find()
+                .all(db)
+                .await
+                .ok()
+                .and_then(|account| {
+                    Some(
+                        account
+                            .into_iter()
+                            .filter(|account| {
+                                account.username.to_lowercase()
+                                    == wanted_account_name.to_lowercase()
+                            })
+                            .collect::<Vec<_>>(),
+                    )
+                });
+            // get the first match, (there should only be one as the account name is unique)
+            let account = accounts.and_then(|accounts| accounts.into_iter().nth(0));
             user_account::Entity::find_related()
-                .filter(user_account::Column::Username.eq(account_name))
+                .filter(user_account::Column::Username.eq(account.unwrap_or_default().username))
                 .one(db)
                 .await
                 .ok()
@@ -64,7 +82,10 @@ impl AdminQuery {
             if let Some(users) = users {
                 let emails = users
                     .into_iter()
-                    .filter(|user| decrypt_value(&user.email).ok().as_ref() == Some(email))
+                    .filter(|user| {
+                        decrypt_value(&user.email, true).ok().as_ref()
+                            == Some(&email.to_lowercase())
+                    })
                     .collect::<Vec<UserDataModel>>();
                 Some(emails)
             } else {
@@ -89,8 +110,8 @@ impl AdminQuery {
                         &user
                             .name
                             .as_deref()
-                            .map(|encryped| decrypt_value(encryped).ok())
-                            == &Some(Some(name.to_owned()))
+                            .map(|encryped| decrypt_value(encryped, true).ok())
+                            == &Some(Some(name.to_owned().to_lowercase()))
                     })
                     .collect::<Vec<UserDataModel>>();
                 Some(names)
