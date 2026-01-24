@@ -8,7 +8,6 @@ use sea_orm::{ActiveValue::Set, DatabaseConnection, EntityTrait};
 
 use crate::web::api::Api;
 
-mod file_user;
 mod instance_handling;
 mod web;
 

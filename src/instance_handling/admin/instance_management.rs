@@ -37,7 +37,7 @@ mod get {
     use serde_json::Value;
 
     use crate::{
-        instance_handling::{admin::AdminQuery, entity::MijnBussieUser, instance_api},
+        instance_handling::{admin::AdminQuery, entity::MijnBussieInstance, instance_api},
         web::api::Api,
     };
 
@@ -52,7 +52,7 @@ mod get {
                 Err(names) => return names.into_response(),
             };
 
-        match MijnBussieUser::find_by_username(db, &instance_name).await {
+        match MijnBussieInstance::find_by_username(db, &instance_name).await {
             Some(instance_data) => (
                 StatusCode::OK,
                 serde_json::to_string_pretty(&instance_data).unwrap(),
@@ -70,7 +70,7 @@ mod get {
         (
             StatusCode::OK,
             [(header::CONTENT_TYPE, "application/json")],
-            Json(MijnBussieUser::default()),
+            Json(MijnBussieInstance::default()),
         )
             .into_response()
     }
@@ -117,7 +117,7 @@ mod post {
     use crate::{
         instance_handling::{
             admin::AdminQuery,
-            entity::{FindByUsername, MijnBussieUser, UserDataModel},
+            entity::{FindByUsername, MijnBussieInstance, UserDataModel},
             generic::{
                 change_information::post::{InstanceInformation, change_information},
                 create_instance::post::attach_user_to_instance,
@@ -128,7 +128,7 @@ mod post {
 
     pub async fn update_properties_admin(
         State(data): State<Api>,
-        Json(instance): Json<MijnBussieUser>,
+        Json(instance): Json<MijnBussieInstance>,
     ) -> impl IntoResponse {
         let db = &data.db;
         match instance.update_properties(db).await {
@@ -139,10 +139,10 @@ mod post {
 
     pub async fn create_instance_admin(
         State(data): State<Api>,
-        Json(instance): Json<MijnBussieUser>,
+        Json(instance): Json<MijnBussieInstance>,
     ) -> impl IntoResponse {
         let db = &data.db;
-        match MijnBussieUser::create_and_insert_models(instance, db, true).await {
+        match MijnBussieInstance::create_and_insert_models(instance, db, true).await {
             Ok(_) => StatusCode::OK.into_response(),
             Err(err) => (StatusCode::INTERNAL_SERVER_ERROR, err.to_string()).into_response(),
         }

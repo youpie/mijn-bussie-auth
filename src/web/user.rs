@@ -15,7 +15,7 @@ use tokio::task;
 
 use crate::GenResult;
 
-#[derive(strum::EnumString, AsRefStr, Debug, Clone, PartialEq, Eq, Hash, Default)]
+#[derive(strum::EnumString, AsRefStr, Debug, Clone, PartialEq, Eq, Hash, Default, Copy)]
 pub enum Role {
     Admin,
     #[default]

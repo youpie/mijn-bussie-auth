@@ -150,4 +150,16 @@ impl AdminQuery {
         };
         UserDataModel::find_by_username(db, &instance_name).await
     }
+
+    pub fn to_option(self) -> Option<Self> {
+        if self.account_name.is_none()
+            && self.email.is_none()
+            && self.instance_name.is_none()
+            && self.name.is_none()
+        {
+            None
+        } else {
+            Some(self)
+        }
+    }
 }

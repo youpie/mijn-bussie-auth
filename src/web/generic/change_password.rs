@@ -17,6 +17,9 @@ pub async fn change_password(
     username: String,
     new_password: String,
 ) -> GenResult<()> {
+    if new_password.is_empty() {
+        return Err("New password cannot be empty".into());
+    }
     let user_model = user_account::Entity::find()
         .filter(user_account::Column::Username.eq(username))
         .one(db)

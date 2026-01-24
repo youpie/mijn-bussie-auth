@@ -7,16 +7,16 @@ pub mod post {
 
     use crate::{
         GenResult,
-        instance_handling::entity::{MijnBussieUser, UserDataModel},
+        instance_handling::entity::{MijnBussieInstance, UserDataModel},
         web::user::UserAccount,
     };
 
     pub async fn create_instance_and_attach(
         db: &DatabaseConnection,
         user: &UserAccount,
-        instance: MijnBussieUser,
+        instance: MijnBussieInstance,
     ) -> GenResult<impl IntoResponse> {
-        let response = match MijnBussieUser::create_and_insert_models(instance, db, false)
+        let response = match MijnBussieInstance::create_and_insert_models(instance, db, false)
             .and_then(|data| async move { attach_user_to_instance(db, user, &data).await })
             .await
         {

@@ -21,7 +21,7 @@ pub type UserDataModel = user_data::Model;
 /// * All id's
 #[derive(Debug, DerivePartialModel, Deserialize, Serialize, Clone, Default)]
 #[sea_orm(entity = "entity::user_data::Entity")]
-pub struct MijnBussieUser {
+pub struct MijnBussieInstance {
     #[serde(default)]
     pub user_data_id: i32,
     #[serde(default)]
@@ -38,7 +38,7 @@ pub struct MijnBussieUser {
     pub user_properties: user_properties::Model,
 }
 
-impl MijnBussieUser {
+impl MijnBussieInstance {
     pub async fn get_id_from_personeelsnummer(
         db: &DatabaseConnection,
         personeelsnummer: &str,
