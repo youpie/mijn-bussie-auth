@@ -16,7 +16,7 @@ mod get {
         extract::{Query, State},
         response::IntoResponse,
     };
-    use entity::user_account;
+    use entity::{user_account, user_data};
     use hyper::StatusCode;
     use sea_orm::{DatabaseConnection, EntityTrait};
 
@@ -68,14 +68,29 @@ mod get {
         Query(users): Query<AdminQuery>,
     ) -> impl IntoResponse {
         let db = &data.db;
-        let account_names = user_account::Entity::find()
+        let all_accounts = user_account::Entity::find()
+            .find_with_related(user_data::Entity)
             .all(db)
             .await
-            .unwrap_or_default()
-            .iter()
-            .map(|account| (account.username.clone(), account.role.clone()))
-            .collect::<Vec<(String, String)>>();
-        (StatusCode::OK, Json(account_names)).into_response()
+            .unwrap_or_default();
+
+        // If a user account has been specified. Print only that user
+        let specific_user = users
+            .get_user_account(db)
+            .await
+            .and_then(|account| Some(account.inner.username.clone()));
+        let mut account_combination = vec![];
+        for account in all_accounts {
+            if specific_user.is_none() || Some(account.0.username.clone()) == specific_user {
+                let linked_instance = account
+                    .1
+                    .first()
+                    .and_then(|instance| Some(instance.user_name.clone()));
+                account_combination.push((account.0.username, account.0.role, linked_instance));
+            }
+        }
+
+        (StatusCode::OK, Json(account_combination)).into_response()
     }
 
     async fn get_users(
