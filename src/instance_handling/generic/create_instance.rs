@@ -16,8 +16,8 @@ pub mod post {
         user: &UserAccount,
         instance: MijnBussieInstance,
     ) -> GenResult<impl IntoResponse> {
-        let response = match MijnBussieInstance::create_and_insert_models(instance, db, false)
-            .and_then(|data| async move { attach_user_to_instance(db, user, &data).await })
+        let response = match MijnBussieInstance::create_and_insert_instance(instance, db, false)
+            .and_then(|data| async move { attach_user_to_instance(db, user, &data.0).await })
             .await
         {
             Ok(_) => StatusCode::OK.into_response(),
@@ -33,6 +33,16 @@ pub mod post {
     ) -> GenResult<()> {
         let mut active_model = account.inner.clone().into_active_model();
         active_model.backend_user = Set(Some(instance.user_name.clone()));
+        user_account::Entity::update(active_model).exec(db).await?;
+        Ok(())
+    }
+
+    pub async fn remove_user_from_instance(
+        db: &DatabaseConnection,
+        account: &UserAccount,
+    ) -> GenResult<()> {
+        let mut active_model = account.inner.clone().into_active_model();
+        active_model.backend_user = Set(None);
         user_account::Entity::update(active_model).exec(db).await?;
         Ok(())
     }

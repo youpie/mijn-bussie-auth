@@ -91,20 +91,27 @@
                                 <button
                                     onclick="send('/admin/start', 'Active', true, true)">Start</button>
                                 <button
-                                    onclick="send('/admin/delete', 'GenResponse', true, true)">Delete</button>
+                                    onclick="send('/admin/delete', 'GenResponse', true, true)">Delete
+                                    Instance</button>
                                 <button
-                                    onclick="send('/admin/welcome', 'GenResponse', true, true)">Welcome</button>
+                                    onclick="send_delete('/admin/delete_account', 'GenResponse', true, false)">Delete
+                                    Account</button>
+                                <button
+                                    onclick="send('/admin/welcome', 'GenResponse', true, true)">Welcome</button><br>
                                 <button
                                     onclick="send('/admin/assign_instance', [], true, true)">Assign</button>
                                 <button
-                                    onclick="send('/admin/refresh', 'return', true, true)">Refresh</button>
-                                <br>
+                                    onclick="send('/admin/unassign_instance', [], true, true)">Unassign</button>
+                                <button
+                                    onclick="send('/admin/refresh', 'return', true, true)">Refresh</button><br>
+
                                 <button
                                     onclick="send('/admin/kuma/reset', 'return', true, true)">Kuma
                                     reset</button>
                                 <button
                                     onclick="send('/admin/kuma/delete', 'return', true, true)">Kuma
                                     delete</button>
+
                             </div>
                             <div id="list">
                                 <p

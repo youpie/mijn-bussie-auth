@@ -17,6 +17,10 @@ pub fn router() -> Router<Api> {
             post(self::post::assign_instance_to_account),
         )
         .route(
+            "/unassign_instance",
+            post(self::post::unassign_instance_to_account),
+        )
+        .route(
             "/update_properties",
             post(self::post::update_properties_admin),
         )
@@ -120,7 +124,7 @@ mod post {
             entity::{FindByUsername, MijnBussieInstance, UserDataModel},
             generic::{
                 change_information::post::{InstanceInformation, change_information},
-                create_instance::post::attach_user_to_instance,
+                create_instance::post::{attach_user_to_instance, remove_user_from_instance},
             },
         },
         web::api::Api,
@@ -142,7 +146,10 @@ mod post {
         Json(instance): Json<MijnBussieInstance>,
     ) -> impl IntoResponse {
         let db = &data.db;
-        match MijnBussieInstance::create_and_insert_models(instance, db, true).await {
+        match MijnBussieInstance::create_and_insert_instance(instance, db, true).await {
+            Ok(result) if result.1 => {
+                (StatusCode::OK, "An existing instance as already found").into_response()
+            }
             Ok(_) => StatusCode::OK.into_response(),
             Err(err) => (StatusCode::INTERNAL_SERVER_ERROR, err.to_string()).into_response(),
         }
@@ -158,6 +165,21 @@ mod post {
             && let Some(instance_data) = UserDataModel::find_by_username(db, &instance_name).await
         {
             match attach_user_to_instance(db, &user_account, &instance_data).await {
+                Ok(_) => StatusCode::OK.into_response(),
+                Err(err) => (StatusCode::INTERNAL_SERVER_ERROR, err.to_string()).into_response(),
+            }
+        } else {
+            StatusCode::INTERNAL_SERVER_ERROR.into_response()
+        }
+    }
+
+    pub async fn unassign_instance_to_account(
+        State(data): State<Api>,
+        Query(user): Query<AdminQuery>,
+    ) -> impl IntoResponse {
+        let db = &data.db;
+        if let Some(user_account) = user.get_user_account(db).await {
+            match remove_user_from_instance(db, &user_account).await {
                 Ok(_) => StatusCode::OK.into_response(),
                 Err(err) => (StatusCode::INTERNAL_SERVER_ERROR, err.to_string()).into_response(),
             }

@@ -91,21 +91,21 @@ impl MijnBussieInstance {
         Ok(decrypt_value(&self.email, false)?)
     }
 
-    pub async fn create_and_insert_models(
+    pub async fn create_and_insert_instance(
         self,
         db: &DatabaseConnection,
         custom_username: bool,
-    ) -> GenResult<UserDataModel> {
-        // Remove leading 0's from
+    ) -> GenResult<(UserDataModel, bool)> {
+        // Remove leading 0's from username
         let user_name = if custom_username && !self.user_name.is_empty() {
-            self.user_name
+            self.user_name.clone()
         } else {
             self.personeelsnummer.parse::<u64>()?.to_string()
         };
         let execution_time = random_str::get_int(0, 59);
         let random_filename = random_str::get_string(12, true, true, true, false);
 
-        let mut user_properties = self.user_properties.into_active_model();
+        let mut user_properties = self.user_properties.clone().into_active_model();
         user_properties.execution_minute = Set(execution_time);
         user_properties.user_properties_id = NotSet;
 
@@ -124,7 +124,35 @@ impl MijnBussieInstance {
             last_system_execution_date: NotSet,
             creation_date: Set(chrono::offset::Utc::now().naive_utc()),
         };
-        add_new_user_to_db(db, user_properties, user_data).await
+        match self.find_existing_instance(db).await {
+            Some(matching_instance) => Ok((matching_instance, true)),
+            None => Ok((
+                add_new_user_to_db(db, user_properties, user_data).await?,
+                false,
+            )),
+        }
+    }
+
+    pub async fn find_existing_instance(&self, db: &DatabaseConnection) -> Option<UserDataModel> {
+        let existing_instances = user_data::Entity::find().all(db).await.ok()?;
+        let matching_instance = existing_instances
+            .iter()
+            .find(|instance| instance.user_name == self.user_name);
+        if let Some(instance_match) = matching_instance {
+            println!(
+                "An existing instance with the same username has been found, determining if actual match"
+            );
+            let match_email = decrypt_value(&instance_match.email, true).ok()?;
+            let match_personeelsnummer =
+                decrypt_value(&instance_match.personeelsnummer, true).ok()?;
+            if match_email == self.email.to_lowercase()
+                && match_personeelsnummer == self.personeelsnummer.to_lowercase()
+            {
+                println!("It is actually a match!");
+                return Some(instance_match.to_owned());
+            }
+        }
+        None
     }
 
     pub async fn update_properties(self, db: &DatabaseConnection) -> GenResult<()> {

@@ -34,6 +34,15 @@ async function send(relative_url, element, include_timestamp, post, drop_query) 
     }
 }
 
+async function send_delete(relative_url, element, include_timestamp, drop_query) {
+    let url = get_url(relative_url);
+    if (!drop_query) url = add_admin_query(url);
+    let response = await send_request(url, "DELETE", "", true);
+    if (element) {
+        await add_response(response, element, include_timestamp)
+    }
+}
+
 async function change_instance_properties() {
     let new_password = document.getElementById("instance_pwd").value;
     let new_email = document.getElementById("instance_email").value;
