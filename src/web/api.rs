@@ -68,7 +68,7 @@ impl Api {
         let app = Router::new()
             .nest("/admin", admin::admin_router())
             .route_layer(permission_required!(Backend, Role::Admin))
-            .merge(instance_handling::router::protected_router())
+            .merge(instance_handling::protected_router())
             .merge(super::protected::protected_router())
             .route_layer(login_required!(Backend))
             .merge(auth::router())
