@@ -1,10 +1,7 @@
 use base64::{Engine, prelude::BASE64_STANDARD_NO_PAD};
 use dotenvy::var;
-use entity::user_data::Model;
-use entity::{user_data, user_properties};
 use rustls::crypto::CryptoProvider;
 use rustls::crypto::ring::default_provider;
-use sea_orm::{ActiveValue::Set, DatabaseConnection, EntityTrait};
 
 use crate::error::OptionResult;
 use crate::web::api::Api;
@@ -50,21 +47,4 @@ fn decrypt_value(encrypted_value: &str, make_lowercase: bool) -> GenResult<Strin
         text = text.to_lowercase();
     }
     Ok(text)
-}
-
-async fn add_new_user_to_db(
-    db: &DatabaseConnection,
-    user_properties: user_properties::ActiveModel,
-    mut user_data: user_data::ActiveModel,
-) -> GenResult<Model> {
-    let res = user_properties::Entity::insert(user_properties)
-        .exec(db)
-        .await?;
-    println!("id {}", res.last_insert_id);
-    user_data.user_properties = Set(res.last_insert_id);
-
-    let data_res = user_data::Entity::insert(user_data)
-        .exec_with_returning(db)
-        .await?;
-    Ok(data_res)
 }
