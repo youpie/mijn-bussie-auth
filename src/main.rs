@@ -6,8 +6,10 @@ use rustls::crypto::CryptoProvider;
 use rustls::crypto::ring::default_provider;
 use sea_orm::{ActiveValue::Set, DatabaseConnection, EntityTrait};
 
+use crate::error::OptionResult;
 use crate::web::api::Api;
 
+pub mod error;
 mod instance_handling;
 mod web;
 
@@ -65,24 +67,4 @@ async fn add_new_user_to_db(
         .exec_with_returning(db)
         .await?;
     Ok(data_res)
-}
-
-pub trait OptionResult<T> {
-    fn result(self) -> GenResult<T>;
-    fn result_reason(self, reason: &str) -> GenResult<T>;
-}
-
-impl<T> OptionResult<T> for Option<T> {
-    fn result(self) -> GenResult<T> {
-        match self {
-            Some(value) => Ok(value),
-            None => Err("Option Unwrap".into()),
-        }
-    }
-    fn result_reason(self, reason: &str) -> GenResult<T> {
-        match self {
-            Some(value) => Ok(value),
-            None => Err(reason.into()),
-        }
-    }
 }
