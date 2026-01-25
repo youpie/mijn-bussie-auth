@@ -21,6 +21,7 @@ mod get {
     use sea_orm::{DatabaseConnection, EntityTrait};
 
     use crate::{
+        error::ResultLog,
         instance_handling::{admin::AdminQuery, entity::MijnBussieInstance},
         web::api::Api,
     };
@@ -72,6 +73,7 @@ mod get {
             .find_with_related(user_data::Entity)
             .all(db)
             .await
+            .warn_owned("Getting accounts")
             .unwrap_or_default();
 
         // If a user account has been specified. Print only that user

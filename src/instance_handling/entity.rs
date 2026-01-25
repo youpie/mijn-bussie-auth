@@ -1,7 +1,7 @@
 use entity::{user_data, user_properties};
 use sea_orm::ActiveValue::{NotSet, Set};
 // type UserPropertiesModel = user_properties::Model;
-use crate::{GenResult, add_new_user_to_db, decrypt_value, encrypt_value};
+use crate::{GenResult, decrypt_value, encrypt_value};
 use sea_orm::ActiveModelTrait;
 use sea_orm::{ColumnTrait, IntoActiveModel};
 use sea_orm::{DatabaseConnection, DerivePartialModel, EntityTrait, QueryFilter};
@@ -127,10 +127,27 @@ impl MijnBussieInstance {
         match self.find_existing_instance(db).await {
             Some(matching_instance) => Ok((matching_instance, true)),
             None => Ok((
-                add_new_user_to_db(db, user_properties, user_data).await?,
+                Self::add_new_user_to_db(db, user_properties, user_data).await?,
                 false,
             )),
         }
+    }
+
+    async fn add_new_user_to_db(
+        db: &DatabaseConnection,
+        user_properties: user_properties::ActiveModel,
+        mut user_data: user_data::ActiveModel,
+    ) -> GenResult<user_data::Model> {
+        let res = user_properties::Entity::insert(user_properties)
+            .exec(db)
+            .await?;
+        println!("id {}", res.last_insert_id);
+        user_data.user_properties = Set(res.last_insert_id);
+
+        let data_res = user_data::Entity::insert(user_data)
+            .exec_with_returning(db)
+            .await?;
+        Ok(data_res)
     }
 
     pub async fn find_existing_instance(&self, db: &DatabaseConnection) -> Option<UserDataModel> {
