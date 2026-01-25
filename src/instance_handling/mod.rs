@@ -9,7 +9,7 @@ use axum::Router;
 use crate::{
     instance_handling::{
         admin::{db, instance_management, passthrough},
-        protected::{change_password, new_instance},
+        protected::{change_information, new_instance},
     },
     web::api::Api,
 };
@@ -17,7 +17,7 @@ use crate::{
 pub fn protected_router() -> Router<Api> {
     Router::new()
         .merge(new_instance::router())
-        .merge(change_password::router())
+        .merge(change_information::router())
         .merge(protected::passthrough::router())
 }
 
