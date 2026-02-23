@@ -5,7 +5,7 @@ use sea_orm::{ActiveValue::Set, DatabaseConnection, EntityTrait, IntoActiveModel
 use serde::Deserialize;
 
 use crate::{
-    GenResult, encrypt_value, instance_handling::instance_api::Instance, web::user::UserAccount,
+    Client, GenResult, encrypt_value, instance_handling::instance_api::Instance, web::user::UserAccount
 };
 
 #[derive(Debug, Deserialize, Default)]
@@ -60,7 +60,7 @@ impl InstanceInformation {
     }
 }
 
-impl super::Client for InstanceInformation {
+impl Client for InstanceInformation {
     fn censor(self) -> Self {
         let mut base = Self::default();
         base.email = self.email;

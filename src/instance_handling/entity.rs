@@ -1,13 +1,16 @@
 use entity::{user_data, user_properties};
 use sea_orm::ActiveValue::{NotSet, Set};
 // type UserPropertiesModel = user_properties::Model;
-use crate::{GenResult, decrypt_value, encrypt_value};
+use crate::{Client, GenResult, decrypt_value, encrypt_value};
 use sea_orm::ActiveModelTrait;
 use sea_orm::{ColumnTrait, IntoActiveModel};
 use sea_orm::{DatabaseConnection, DerivePartialModel, EntityTrait, QueryFilter};
 use serde::{Deserialize, Serialize};
 
 pub type UserDataModel = user_data::Model;
+
+const EMAIL_INTERVAL: i32 = 3*60;
+const BARE_INTERVAL: i32 = 6*60;
 
 /// Encrypted values:
 /// * Personeelsnummer
@@ -19,6 +22,11 @@ pub type UserDataModel = user_data::Model;
 /// * file_name
 /// * user_name (if not admin)
 /// * All id's
+///     From properties:
+/// * execution_minute
+/// * send_error_mail
+/// * execution_interval_minutes
+/// * auto_delete_account
 #[derive(Debug, DerivePartialModel, Deserialize, Serialize, Clone, Default)]
 #[sea_orm(entity = "entity::user_data::Entity")]
 pub struct MijnBussieInstance {
@@ -102,11 +110,9 @@ impl MijnBussieInstance {
         } else {
             self.personeelsnummer.parse::<u64>()?.to_string()
         };
-        let execution_time = random_str::get_int(0, 59);
         let random_filename = random_str::get_string(12, true, true, true, false);
 
         let mut user_properties = self.user_properties.clone().into_active_model();
-        user_properties.execution_minute = Set(execution_time);
         user_properties.user_properties_id = NotSet;
 
         let user_data = user_data::ActiveModel {
@@ -180,7 +186,17 @@ impl MijnBussieInstance {
             .await?;
         Ok(())
     }
+
+    pub fn calculate_execution_interval(&self) -> i32 {
+        let properties = &self.user_properties;
+        if properties.send_mail_new_shift | properties.send_mail_updated_shift | properties.send_mail_removed_shift {
+            EMAIL_INTERVAL
+        } else {
+            BARE_INTERVAL
+        }
+    }
 }
+
 
 pub trait FindByUsername {
     async fn find_by_username(db: &DatabaseConnection, user_name: &str) -> Option<UserDataModel>;
@@ -194,6 +210,35 @@ impl FindByUsername for user_data::Model {
             .await
             .ok()
             .flatten()
+    }
+}
+
+impl Client for MijnBussieInstance {
+    fn censor(self) -> Self {
+        let mut empty_instance = MijnBussieInstance::default();
+
+        let properties = &mut empty_instance.user_properties;
+
+        properties.execution_minute = random_str::get_int(0, 59);
+        properties.execution_interval_minutes = self.calculate_execution_interval();
+
+        empty_instance.user_name = self.user_name;
+        empty_instance.password = self.password;
+        empty_instance.email = self.email;
+
+        let properties_self = &self.user_properties;
+
+        properties.send_mail_new_shift = properties_self.send_failed_signin_mail;
+        properties.send_mail_removed_shift = properties_self.send_mail_removed_shift;
+        properties.send_mail_updated_shift = properties_self.send_mail_updated_shift;
+        properties.split_night_shift = properties_self.split_night_shift;
+        properties.stop_midnight_shift = properties_self.stop_midnight_shift;
+
+        properties.auto_delete_account = true;
+        properties.send_welcome_mail = true;
+        properties.user_properties_id = 0;
+        
+        empty_instance
     }
 }
 

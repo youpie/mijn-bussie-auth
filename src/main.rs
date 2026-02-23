@@ -48,3 +48,12 @@ fn decrypt_value(encrypted_value: &str, make_lowercase: bool) -> GenResult<Strin
     }
     Ok(text)
 }
+
+pub trait Client {
+    /// Censor sensitive data
+    ///
+    /// You need to select which attribute you want to be kept
+    ///
+    /// Zero-trust
+    fn censor(self) -> Self;
+}
