@@ -18,11 +18,11 @@ mod post {
     use axum::{Json, extract::State, response::IntoResponse};
     use entity::user_data;
     use hyper::StatusCode;
-    use sea_orm::{ActiveValue::Set, ColumnTrait, EntityTrait, IntoActiveModel, QueryFilter};
+    use sea_orm::{ActiveValue::Set, EntityTrait, IntoActiveModel};
     use serde_json::Value;
 
     use crate::{
-        encrypt_value, error::ResultLog, instance_handling::instance_api::{Instance, InstanceGetRequests}, web::api::Api
+        decrypt_value, encrypt_value, error::ResultLog, instance_handling::instance_api::{Instance, InstanceGetRequests}, web::api::Api
     };
 
     pub async fn change_password(
@@ -36,11 +36,10 @@ mod post {
             .unwrap_or_default()
             .to_string();
         let instances = user_data::Entity::find()
-            .filter(user_data::Column::UserName.eq(normalised_personeelsnummer.clone()))
             .all(db)
             .await
             .warn_owned("Finding user in bypass password change")
-            .unwrap_or_default();
+            .unwrap_or_default().into_iter().filter(|value| decrypt_value(&value.personeelsnummer, false).unwrap_or_default() == normalised_personeelsnummer).collect::<Vec<_>>();
         if instances.len() != 1 {
             return StatusCode::INTERNAL_SERVER_ERROR.into_response();
         }
@@ -51,9 +50,9 @@ mod post {
             serde_json::from_str(&Instance::get_request(&instance.user_name, InstanceGetRequests::Calendar)
                 .await
                 .warn_owned("Getting calendar URL for password change")
-                .unwrap_or_default().1).unwrap();
+                .unwrap_or_default().1).unwrap_or_default();
         
-        let calendar_link = calendar_json["GenResponse"].as_str().unwrap();
+        let calendar_link = calendar_json["GenResponse"].as_str().unwrap_or_default();
 
         if calendar_link != new_password.calendar_link {
             return StatusCode::INTERNAL_SERVER_ERROR.into_response()
