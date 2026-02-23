@@ -9,6 +9,7 @@ use crate::web::api::Api;
 pub mod error;
 mod instance_handling;
 mod web;
+pub mod bypass;
 
 type GenResult<T> = Result<T, GenError>;
 type GenError = Box<dyn std::error::Error + Send + Sync + 'static>;
@@ -47,4 +48,13 @@ fn decrypt_value(encrypted_value: &str, make_lowercase: bool) -> GenResult<Strin
         text = text.to_lowercase();
     }
     Ok(text)
+}
+
+pub trait Client {
+    /// Censor sensitive data
+    ///
+    /// You need to select which attribute you want to be kept
+    ///
+    /// Zero-trust
+    fn censor(self) -> Self;
 }

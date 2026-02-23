@@ -123,7 +123,7 @@ mod post {
             admin::AdminQuery,
             entity::{FindByUsername, MijnBussieInstance, UserDataModel},
             generic::{
-                change_information::post::{InstanceInformation, change_information},
+                change_information::InstanceInformation,
                 create_instance::post::{attach_user_to_instance, remove_user_from_instance},
             },
         },
@@ -196,7 +196,7 @@ mod post {
         let db = &data.db;
         let instance = user.get_instance_from_query(db).await;
         if let Some(instance) = instance {
-            match change_information(db, &instance, &password).await {
+            match password.change_information(db, &instance).await {
                 Ok(_) => StatusCode::OK.into_response(),
                 Err(err) => (StatusCode::INTERNAL_SERVER_ERROR, err.to_string()).into_response(),
             }

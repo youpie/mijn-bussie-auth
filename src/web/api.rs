@@ -28,7 +28,7 @@ impl Api {
         let db = Database::connect(&var("DATABASE_URL")?)
             .await
             .expect("Could not connect to database");
-
+        println!("Connected to database!");
         Ok(Self { db })
     }
 
@@ -68,9 +68,10 @@ impl Api {
         let app = Router::new()
             .nest("/admin", admin::admin_router())
             .route_layer(permission_required!(Backend, Role::Admin))
-            .merge(instance_handling::router::protected_router())
+            .merge(instance_handling::protected_router())
             .merge(super::protected::protected_router())
             .route_layer(login_required!(Backend))
+            .nest("/bypass", crate::bypass::router())
             .merge(auth::router())
             .merge(new_user::router())
             .layer(auth_layer)
@@ -78,6 +79,7 @@ impl Api {
             .with_state(test);
 
         let port = var("API_PORT")?;
+        println!("Starting app at port {port}");
         axum_server::bind_rustls(
             std::net::SocketAddr::from_str(&format!("0.0.0.0:{port}")).unwrap(),
             tls_config,

@@ -129,3 +129,15 @@ impl Instance {
         Ok(request.status())
     }
 }
+
+impl InstanceGetRequests {
+    fn user_allowed(&self) -> bool {
+        matches!(self, InstanceGetRequests::Calendar | InstanceGetRequests::Name | InstanceGetRequests::ExitCode)
+    }
+}
+
+impl InstancePostRequests {
+    fn user_allowed(&self) -> bool {
+        matches!(self, InstancePostRequests::Delete)
+    }
+}
