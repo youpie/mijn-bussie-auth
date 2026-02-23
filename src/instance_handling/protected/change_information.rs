@@ -13,8 +13,7 @@ mod post {
     use axum::{Json, extract::State, response::IntoResponse};
 
     use crate::{
-        instance_handling::generic::change_information::InstanceInformation,
-        web::{api::Api, user::AuthSession},
+        Client, instance_handling::generic::change_information::InstanceInformation, web::{api::Api, user::AuthSession}
     };
 
     pub async fn change_information_protected(
@@ -24,6 +23,7 @@ mod post {
     ) -> impl IntoResponse {
         let user = auth_session.user.expect("No user in protected space");
         let data = data.db;
+        let information = information.censor();
         information.change_information_protected(data, user).await
     }
 }

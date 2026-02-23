@@ -20,6 +20,9 @@ _Beheren van instance gegevens_
 | ------ | ------------------------------ | ------------------- | -------------------------------------------------------------------------------------- |
 | POST   | `/change_instance_information` | InstanceInformation | Verander de email en wachtwoord van de mijnBussie instance verbonden met het account   |
 | POST   | `/add_instance`                | MijnBussieInstance  | Creert een nieuwe MijnBussie instance en linkt automatisch de instance aan het account |
+| GET   | `/calendar` | | Stuurt de agenda link van de gelinkte instance |
+| GET | `/ExitCode` | | Stuurt de laatste exitcode van de gelinkte instance terug
+| POST | `/Delete` | | Verwijderd de Instance van deze user |
 
 # Datatypes
 
@@ -46,29 +49,22 @@ _Alle waardes zijn optioneel_
 {
     "email": "youp@protonmail.com",
     "password": "Password",
-    "personeelsnummer": "123456", <-- Wordt genegeerd
-    "username": "123456" <-- Wordt genegeerd
 }
 ```
 
 # MijnBussieInstance
 ``` JSON
 {
-    "user_name": "123456", <-- Wordt genegeerd
     "personeelsnummer": "123456",
     "password": "Password",
     "email": "youp@protonmail.com",
     {
-        "execution_interval_minutes": 0,
         "send_mail_new_shift": false,
         "send_mail_updated_shift": false,
         "send_mail_removed_shift": false,
         "send_failed_signin_mail": false,
-        "send_welcome_mail": false,
-        "send_error_mail": false,
         "split_night_shift": false,
         "stop_midnight_shift": false,
-        "auto_delete_account": false
     }
 
 }

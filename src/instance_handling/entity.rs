@@ -225,6 +225,7 @@ impl Client for MijnBussieInstance {
         empty_instance.user_name = self.user_name;
         empty_instance.password = self.password;
         empty_instance.email = self.email;
+        empty_instance.personeelsnummer = self.personeelsnummer;
 
         let properties_self = &self.user_properties;
 
