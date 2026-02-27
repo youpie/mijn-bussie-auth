@@ -9,8 +9,8 @@ use serde::{Deserialize, Serialize};
 
 pub type UserDataModel = user_data::Model;
 
-const EMAIL_INTERVAL: i32 = 3*60;
-const BARE_INTERVAL: i32 = 6*60;
+const EMAIL_INTERVAL: i32 = 3 * 60;
+const BARE_INTERVAL: i32 = 6 * 60;
 
 /// Encrypted values:
 /// * Personeelsnummer
@@ -147,7 +147,7 @@ impl MijnBussieInstance {
         let res = user_properties::Entity::insert(user_properties)
             .exec(db)
             .await?;
-        println!("id {}", res.last_insert_id);
+        println!("Created new user with id {}", res.last_insert_id);
         user_data.user_properties = Set(res.last_insert_id);
 
         let data_res = user_data::Entity::insert(user_data)
@@ -189,14 +189,16 @@ impl MijnBussieInstance {
 
     pub fn calculate_execution_interval(&self) -> i32 {
         let properties = &self.user_properties;
-        if properties.send_mail_new_shift | properties.send_mail_updated_shift | properties.send_mail_removed_shift {
+        if properties.send_mail_new_shift
+            | properties.send_mail_updated_shift
+            | properties.send_mail_removed_shift
+        {
             EMAIL_INTERVAL
         } else {
             BARE_INTERVAL
         }
     }
 }
-
 
 pub trait FindByUsername {
     async fn find_by_username(db: &DatabaseConnection, user_name: &str) -> Option<UserDataModel>;
@@ -238,7 +240,7 @@ impl Client for MijnBussieInstance {
         properties.auto_delete_account = true;
         properties.send_welcome_mail = true;
         properties.user_properties_id = 0;
-        
+
         empty_instance
     }
 }

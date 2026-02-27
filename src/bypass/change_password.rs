@@ -22,7 +22,10 @@ mod post {
     use serde_json::Value;
 
     use crate::{
-        decrypt_value, encrypt_value, error::ResultLog, instance_handling::instance_api::{Instance, InstanceGetRequests}, web::api::Api
+        decrypt_value, encrypt_value,
+        error::ResultLog,
+        instance_handling::instance_api::{Instance, InstanceGetRequests},
+        web::api::Api,
     };
 
     pub async fn change_password(
@@ -39,35 +42,51 @@ mod post {
             .all(db)
             .await
             .warn_owned("Finding user in bypass password change")
-            .unwrap_or_default().into_iter().filter(|value| decrypt_value(&value.personeelsnummer, false).unwrap_or_default() == normalised_personeelsnummer).collect::<Vec<_>>();
+            .unwrap_or_default()
+            .into_iter()
+            .filter(|value| {
+                decrypt_value(&value.personeelsnummer, false).unwrap_or_default()
+                    == normalised_personeelsnummer
+            })
+            .collect::<Vec<_>>();
         if instances.len() != 1 {
             return StatusCode::INTERNAL_SERVER_ERROR.into_response();
         }
 
         let instance = instances.first().unwrap().clone();
 
-        let calendar_json: Value =
-            serde_json::from_str(&Instance::get_request(&instance.user_name, InstanceGetRequests::Calendar)
+        let calendar_json: Value = serde_json::from_str(
+            &Instance::get_request(&instance.user_name, InstanceGetRequests::Calendar)
                 .await
                 .warn_owned("Getting calendar URL for password change")
-                .unwrap_or_default().1).unwrap_or_default();
-        
+                .unwrap_or_default()
+                .1,
+        )
+        .unwrap_or_default();
+
         let calendar_link = calendar_json["GenResponse"].as_str().unwrap_or_default();
 
         if calendar_link != new_password.calendar_link {
-            return StatusCode::INTERNAL_SERVER_ERROR.into_response()
+            return StatusCode::INTERNAL_SERVER_ERROR.into_response();
         }
 
-        let mut active_instance = instance.into_active_model();
+        let mut active_instance = instance.clone().into_active_model();
 
         if let Ok(password) = encrypt_value(&new_password.password) {
             active_instance.password = Set(password);
-            user_data::Entity::update(active_instance).exec(db).await.warn("Updating password");
+            user_data::Entity::update(active_instance)
+                .exec(db)
+                .await
+                .warn("Updating password");
         } else {
             return StatusCode::INTERNAL_SERVER_ERROR.into_response();
         }
-        
-        
+
+        Instance::refresh_user(Some(&instance.user_name))
+            .await
+            .warn("Refreshing bypassed password change");
+
+        println!("Changed password for user {normalised_personeelsnummer}");
 
         StatusCode::OK.into_response()
     }
