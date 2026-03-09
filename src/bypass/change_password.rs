@@ -50,6 +50,15 @@ mod post {
             })
             .collect::<Vec<_>>();
         if instances.len() != 1 {
+            println!(
+                "Found {} matches for user {}, so can't change password: {:?}",
+                instances.len(),
+                new_password.personeelsnummer,
+                instances
+                    .into_iter()
+                    .map(|x| decrypt_value(&x.personeelsnummer, false).unwrap_or_default())
+                    .collect::<Vec<String>>()
+            );
             return StatusCode::INTERNAL_SERVER_ERROR.into_response();
         }
 
@@ -67,6 +76,10 @@ mod post {
         let calendar_link = calendar_json["GenResponse"].as_str().unwrap_or_default();
 
         if calendar_link != new_password.calendar_link {
+            println!(
+                "User {} tried to change password, but supplied link was incorrect",
+                new_password.calendar_link
+            );
             return StatusCode::INTERNAL_SERVER_ERROR.into_response();
         }
 
