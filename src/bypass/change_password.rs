@@ -44,10 +44,7 @@ mod post {
             .warn_owned("Finding user in bypass password change")
             .unwrap_or_default()
             .into_iter()
-            .filter(|value| {
-                decrypt_value(&value.personeelsnummer, false).unwrap_or_default()
-                    == normalised_personeelsnummer
-            })
+            .filter(|value| value.user_name == normalised_personeelsnummer)
             .collect::<Vec<_>>();
         if instances.len() != 1 {
             println!(
