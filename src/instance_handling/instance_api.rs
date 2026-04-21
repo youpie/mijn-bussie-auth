@@ -27,6 +27,7 @@ pub enum InstanceGetRequests {
     Name,
     Calendar,
     Standing,
+    Logs
 }
 
 #[derive(Debug, Deserialize, AsRefStr, PartialEq)]

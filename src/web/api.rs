@@ -25,11 +25,19 @@ pub struct Api {
 
 impl Api {
     pub async fn new() -> GenResult<Self> {
-        let db = Database::connect(&var("DATABASE_URL")?)
+        
+        let db = Database::connect(&Api::db_url()?)
             .await
             .expect("Could not connect to database");
         println!("Connected to database!");
         Ok(Self { db })
+    }
+
+    fn db_url() -> GenResult<String> {
+        Ok(match var("AUTH_DATABASE_URL") {
+            Ok(url) => url,
+            Err(_) => var("DATABASE_URL")?
+        })
     }
 
     pub async fn serve(self) -> GenResult<()> {
@@ -37,7 +45,7 @@ impl Api {
         //
         // This uses `tower-sessions` to establish a layer that will provide the session
         // as a request extension.
-        let pg_pool = PgPool::connect_lazy(&var("DATABASE_URL")?)?;
+        let pg_pool = PgPool::connect_lazy(&Api::db_url()?)?;
         let session_store = PostgresStore::new(pg_pool);
 
         session_store.migrate().await?;
