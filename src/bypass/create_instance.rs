@@ -114,6 +114,8 @@ mod get {
                 StatusCode::NOT_ACCEPTABLE
             } else if instance_active == json!({"Active":"Active"}) {
                 StatusCode::TOO_EARLY
+            } else if instance_active == json!({"Active":"SignedIn"}) {
+                StatusCode::ACCEPTED
             } else {
                 StatusCode::OK
             }

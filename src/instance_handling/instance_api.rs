@@ -27,6 +27,7 @@ pub enum InstanceGetRequests {
     Name,
     Calendar,
     Standing,
+    Logs,
 }
 
 #[derive(Debug, Deserialize, AsRefStr, PartialEq)]
@@ -132,7 +133,12 @@ impl Instance {
 
 impl InstanceGetRequests {
     fn user_allowed(&self) -> bool {
-        matches!(self, InstanceGetRequests::Calendar | InstanceGetRequests::Name | InstanceGetRequests::ExitCode)
+        matches!(
+            self,
+            InstanceGetRequests::Calendar
+                | InstanceGetRequests::Name
+                | InstanceGetRequests::ExitCode
+        )
     }
 }
 
