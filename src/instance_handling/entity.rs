@@ -22,7 +22,6 @@ pub enum InstanceMatchReturn {
     NewUser(UserDataModel),
     Partial,
     Exact(UserDataModel),
-    Unknown,
 }
 
 /// Encrypted values:
@@ -152,15 +151,14 @@ impl MijnBussieInstance {
             creation_date: Set(chrono::offset::Utc::now().naive_utc()),
             online_created: Set(self.online_created),
         };
-        match self.find_existing_instance(db, &user_name).await {
-            Some(InstanceMatch::Exact(matching_instance)) => {
+        match self.find_existing_instance(db, &user_name).await? {
+            InstanceMatch::Exact(matching_instance) => {
                 Ok(InstanceMatchReturn::Exact(matching_instance))
             }
-            Some(InstanceMatch::No) => Ok(InstanceMatchReturn::NewUser(
+            InstanceMatch::No => Ok(InstanceMatchReturn::NewUser(
                 Self::add_new_user_to_db(db, user_properties, user_data).await?,
             )),
-            Some(_) => Ok(InstanceMatchReturn::Partial),
-            None => Ok(InstanceMatchReturn::Unknown),
+            InstanceMatch::Username => Ok(InstanceMatchReturn::Partial),
         }
     }
 
@@ -185,8 +183,8 @@ impl MijnBussieInstance {
         &self,
         db: &DatabaseConnection,
         user_name: &str,
-    ) -> Option<InstanceMatch> {
-        let existing_instances = user_data::Entity::find().all(db).await.ok()?;
+    ) -> GenResult<InstanceMatch> {
+        let existing_instances = user_data::Entity::find().all(db).await?;
         let matching_instance = existing_instances
             .iter()
             .find(|instance| instance.user_name == user_name);
@@ -194,20 +192,20 @@ impl MijnBussieInstance {
             println!(
                 "An existing instance with the same username has been found, determining if actual match"
             );
-            let match_email = decrypt_value(&instance_match.email, true).ok()?;
+            let match_email = decrypt_value(&instance_match.email, true)?;
             let match_personeelsnummer =
-                decrypt_value(&instance_match.personeelsnummer, true).ok()?;
+                decrypt_value(&instance_match.personeelsnummer, true)?;
             if match_email == self.email.to_lowercase()
                 && match_personeelsnummer == self.personeelsnummer.to_lowercase()
             {
                 println!("It is actually a match!");
-                return Some(InstanceMatch::Exact(instance_match.to_owned()));
+                return Ok(InstanceMatch::Exact(instance_match.to_owned()));
             } else {
                 println!("Only the username matches");
-                return Some(InstanceMatch::Username);
+                return Ok(InstanceMatch::Username);
             }
         }
-        Some(InstanceMatch::No)
+        Ok(InstanceMatch::No)
     }
 
     pub async fn update_properties(self, db: &DatabaseConnection) -> GenResult<()> {

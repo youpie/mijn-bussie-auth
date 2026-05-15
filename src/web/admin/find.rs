@@ -38,7 +38,7 @@ mod get {
             Json(
                 all_users
                     .iter()
-                    .filter_map(|user| user.get_email().ok())
+                    .filter_map(|user| user.get_email().warn_owned("Decrypting email").ok())
                     .collect::<Vec<String>>(),
             ),
         )
@@ -111,7 +111,7 @@ mod get {
             users
         } else {
             MijnBussieInstance::get_all_users(db)
-                .await
+                .await.warn_owned("Loading all users")
                 .unwrap_or_default()
         }
     }

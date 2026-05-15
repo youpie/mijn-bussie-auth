@@ -83,10 +83,10 @@ mod put {
                     )
                         .into_response()
                 }
-                _ => (StatusCode::NOT_ACCEPTABLE).into_response(),
+                InstanceMatchReturn::Partial => (StatusCode::NOT_ACCEPTABLE).into_response(),
             }
         } else {
-            StatusCode::NOT_ACCEPTABLE.into_response()
+            StatusCode::INTERNAL_SERVER_ERROR.into_response()
         }
     }
 }
