@@ -12,6 +12,19 @@ pub type UserDataModel = user_data::Model;
 const EMAIL_INTERVAL: i32 = 3 * 60;
 const BARE_INTERVAL: i32 = 6 * 60;
 
+enum InstanceMatch {
+    No,
+    Username,
+    Exact(UserDataModel),
+}
+
+pub enum InstanceMatchReturn {
+    NewUser(UserDataModel),
+    Partial,
+    Exact(UserDataModel),
+    Unknown,
+}
+
 /// Encrypted values:
 /// * Personeelsnummer
 /// * Password
@@ -34,14 +47,13 @@ pub struct MijnBussieInstance {
     pub user_data_id: i32,
     #[serde(default)]
     pub user_name: String,
-    #[serde(skip_serializing_if = "String::is_filled", default)]
     pub personeelsnummer: String,
-    #[serde(skip_serializing_if = "String::is_filled", default)]
     pub password: String,
     #[serde(skip_serializing_if = "Option::is_some", default)]
     pub name: Option<String>,
-    #[serde(skip_serializing_if = "String::is_filled", default)]
     pub email: String,
+    #[serde(skip_deserializing, default)]
+    pub online_created: bool,
     #[sea_orm(nested)]
     pub user_properties: user_properties::Model,
 }
@@ -99,11 +111,12 @@ impl MijnBussieInstance {
         Ok(decrypt_value(&self.email, false)?)
     }
 
+    /// True if user already exists
     pub async fn create_and_insert_instance(
         self,
         db: &DatabaseConnection,
         custom_username: bool,
-    ) -> GenResult<(UserDataModel, bool)> {
+    ) -> GenResult<InstanceMatchReturn> {
         // Remove leading 0's from username
         let user_name = if custom_username && !self.user_name.is_empty() {
             self.user_name.clone()
@@ -117,7 +130,7 @@ impl MijnBussieInstance {
 
         let user_data = user_data::ActiveModel {
             user_data_id: NotSet,
-            user_name: Set(user_name),
+            user_name: Set(user_name.clone()),
             personeelsnummer: Set(encrypt_value(&self.personeelsnummer)?),
             password: Set(encrypt_value(&self.password)?),
             email: Set(encrypt_value(&self.email)?),
@@ -129,13 +142,17 @@ impl MijnBussieInstance {
             last_succesfull_sign_in_date: NotSet,
             last_system_execution_date: NotSet,
             creation_date: Set(chrono::offset::Utc::now().naive_utc()),
+            online_created: Set(self.online_created),
         };
-        match self.find_existing_instance(db).await {
-            Some(matching_instance) => Ok((matching_instance, true)),
-            None => Ok((
+        match self.find_existing_instance(db, &user_name).await {
+            Some(InstanceMatch::Exact(matching_instance)) => {
+                Ok(InstanceMatchReturn::Exact(matching_instance))
+            }
+            Some(InstanceMatch::No) => Ok(InstanceMatchReturn::NewUser(
                 Self::add_new_user_to_db(db, user_properties, user_data).await?,
-                false,
             )),
+            Some(_) => Ok(InstanceMatchReturn::Partial),
+            None => Ok(InstanceMatchReturn::Unknown),
         }
     }
 
@@ -156,11 +173,15 @@ impl MijnBussieInstance {
         Ok(data_res)
     }
 
-    pub async fn find_existing_instance(&self, db: &DatabaseConnection) -> Option<UserDataModel> {
+    async fn find_existing_instance(
+        &self,
+        db: &DatabaseConnection,
+        user_name: &str,
+    ) -> Option<InstanceMatch> {
         let existing_instances = user_data::Entity::find().all(db).await.ok()?;
         let matching_instance = existing_instances
             .iter()
-            .find(|instance| instance.user_name == self.user_name);
+            .find(|instance| instance.user_name == user_name);
         if let Some(instance_match) = matching_instance {
             println!(
                 "An existing instance with the same username has been found, determining if actual match"
@@ -172,10 +193,13 @@ impl MijnBussieInstance {
                 && match_personeelsnummer == self.personeelsnummer.to_lowercase()
             {
                 println!("It is actually a match!");
-                return Some(instance_match.to_owned());
+                return Some(InstanceMatch::Exact(instance_match.to_owned()));
+            } else {
+                println!("Only the username matches");
+                return Some(InstanceMatch::Username);
             }
         }
-        None
+        Some(InstanceMatch::No)
     }
 
     pub async fn update_properties(self, db: &DatabaseConnection) -> GenResult<()> {

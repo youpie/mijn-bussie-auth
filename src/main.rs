@@ -6,10 +6,10 @@ use rustls::crypto::ring::default_provider;
 use crate::error::OptionResult;
 use crate::web::api::Api;
 
+pub mod bypass;
 pub mod error;
 mod instance_handling;
 mod web;
-pub mod bypass;
 
 type GenResult<T> = Result<T, GenError>;
 type GenError = Box<dyn std::error::Error + Send + Sync + 'static>;

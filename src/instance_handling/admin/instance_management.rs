@@ -121,7 +121,7 @@ mod post {
     use crate::{
         instance_handling::{
             admin::AdminQuery,
-            entity::{FindByUsername, MijnBussieInstance, UserDataModel},
+            entity::{FindByUsername, InstanceMatchReturn, MijnBussieInstance, UserDataModel},
             generic::{
                 change_information::InstanceInformation,
                 create_instance::post::{attach_user_to_instance, remove_user_from_instance},
@@ -147,9 +147,14 @@ mod post {
     ) -> impl IntoResponse {
         let db = &data.db;
         match MijnBussieInstance::create_and_insert_instance(instance, db, true).await {
-            Ok(result) if result.1 => {
+            Ok(InstanceMatchReturn::Exact(_)) => {
                 (StatusCode::OK, "An existing instance as already found").into_response()
             }
+            Ok(InstanceMatchReturn::Partial) => (
+                StatusCode::CONFLICT,
+                "An existing instance was found, with different credentials",
+            )
+                .into_response(),
             Ok(_) => StatusCode::OK.into_response(),
             Err(err) => (StatusCode::INTERNAL_SERVER_ERROR, err.to_string()).into_response(),
         }
