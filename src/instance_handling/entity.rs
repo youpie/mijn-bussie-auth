@@ -58,6 +58,14 @@ pub struct MijnBussieInstance {
     pub user_properties: user_properties::Model,
 }
 
+#[derive(Debug, DerivePartialModel, Deserialize, Serialize, Clone, Default)]
+#[sea_orm(entity = "entity::user_properties::Entity")]
+pub struct MijnBussieInstanceProperties {
+    send_mail_new_shift: bool,
+    send_mail_updated_shift: bool,
+    send_mail_removed_shift: bool,
+}
+
 impl MijnBussieInstance {
     pub async fn get_id_from_personeelsnummer(
         db: &DatabaseConnection,
