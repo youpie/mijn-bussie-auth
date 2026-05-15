@@ -1,13 +1,10 @@
 pub mod post {
-    use axum::{http::StatusCode, response::IntoResponse};
-
     use entity::user_account;
-    use futures::TryFutureExt;
     use sea_orm::{ActiveValue::Set, DatabaseConnection, EntityTrait, IntoActiveModel};
 
     use crate::{
         GenResult,
-        instance_handling::entity::{MijnBussieInstance, UserDataModel},
+        instance_handling::entity::{InstanceMatchReturn, MijnBussieInstance, UserDataModel},
         web::user::UserAccount,
     };
 
@@ -15,15 +12,17 @@ pub mod post {
         db: &DatabaseConnection,
         user: &UserAccount,
         instance: MijnBussieInstance,
-    ) -> GenResult<impl IntoResponse> {
-        let response = match MijnBussieInstance::create_and_insert_instance(instance, db, false)
-            .and_then(|data| async move { attach_user_to_instance(db, user, &data.0).await })
-            .await
-        {
-            Ok(_) => StatusCode::OK.into_response(),
-            Err(err) => (StatusCode::INTERNAL_SERVER_ERROR, err.to_string()).into_response(),
-        };
-        Ok(response)
+    ) -> GenResult<()> {
+        let instance =
+            match MijnBussieInstance::create_and_insert_instance(instance, db, false).await? {
+                InstanceMatchReturn::Exact(instance) => Some(instance),
+                InstanceMatchReturn::NewUser(instance) => Some(instance),
+                _ => None,
+            };
+        if let Some(instance) = instance {
+            attach_user_to_instance(db, user, &instance).await?
+        }
+        Ok(())
     }
 
     pub async fn attach_user_to_instance(

@@ -14,12 +14,14 @@ mod post {
     use reqwest::StatusCode;
 
     use crate::{
-        Client, instance_handling::{
+        Client,
+        instance_handling::{
             entity::MijnBussieInstance, generic::create_instance::post::create_instance_and_attach,
-        }, web::{
+        },
+        web::{
             api::Api,
             user::{AuthSession, GetUser},
-        }
+        },
     };
 
     pub async fn create_instance_and_attach_protected(
@@ -33,7 +35,8 @@ mod post {
             Ok(user) => user,
             Err(err) => return err.into_response(),
         };
-        let instance = instance.censor();
+        let mut instance = instance.censor();
+        instance.online_created = true;
         // If personeelsnummer already exists, don't create this instance
         if MijnBussieInstance::get_id_from_personeelsnummer(db, &instance.personeelsnummer)
             .await
@@ -48,5 +51,4 @@ mod post {
         }
         .into_response()
     }
-
 }
