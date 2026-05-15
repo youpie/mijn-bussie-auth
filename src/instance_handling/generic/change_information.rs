@@ -48,10 +48,10 @@ impl InstanceInformation {
             instance_data.email = Set(encrypt_value(&new_email)?);
         }
         if let Some(new_personeelsnummer) = &self.personeelsnummer {
-            instance_data.email = Set(new_personeelsnummer.clone());
+            instance_data.personeelsnummer = Set(new_personeelsnummer.clone());
         }
         if let Some(new_username) = &self.user_name {
-            instance_data.email = Set(new_username.clone());
+            instance_data.user_name = Set(new_username.clone());
         }
 
         user_data::Entity::update(instance_data).exec(db).await?;
