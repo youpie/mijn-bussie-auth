@@ -18,6 +18,7 @@ enum InstanceMatch {
     Exact(UserDataModel),
 }
 
+#[derive(Debug)]
 pub enum InstanceMatchReturn {
     NewUser(UserDataModel),
     Partial,

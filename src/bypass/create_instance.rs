@@ -86,6 +86,7 @@ mod put {
                 InstanceMatchReturn::Partial => (StatusCode::NOT_ACCEPTABLE).into_response(),
             }
         } else {
+            println!("{inserted:?}");
             StatusCode::INTERNAL_SERVER_ERROR.into_response()
         }
     }
