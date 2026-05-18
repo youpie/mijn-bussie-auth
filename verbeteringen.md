@@ -1,0 +1,20 @@
+- Endpoints uit mod's halen
+- Global error state toevoegen
+    - Boilerplate uit endpoints halen
+    - Anyhow gebruiken
+- globale reqwest client toevoegen
+- Instance en web folders unifyen
+- MijnBussieInstance opsplitsen in meedere modules 
+	- InstanceEncrypted
+	- InstanceDecrypted
+	- InstanceRequest
+- Rollen niet strings maar enums maken
+- Tracing gebruiken
+    - Context per request
+    - Veel meer relevante logging
+- calendar file serven vanuit deze endpoint
+- Toevoegen van nieuwe gebruikers sneller maken
+- Informatie over laden van nieuwe gebruikers
+    - Gebroken diensten laden etc.
+- Prelude toevoegen
+
