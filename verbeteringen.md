@@ -17,4 +17,6 @@
 - Informatie over laden van nieuwe gebruikers
     - Gebroken diensten laden etc.
 - Prelude toevoegen
+- Main.rs kleiner maken
+- Unwraps verwijderen
 

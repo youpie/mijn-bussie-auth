@@ -5,7 +5,7 @@ use sea_orm::{
 };
 use serde::Deserialize;
 
-use crate::GenResult;
+use super::*;
 
 #[derive(Debug, Deserialize)]
 pub struct PasswordChange {
@@ -18,7 +18,7 @@ pub async fn change_password(
     new_password: String,
 ) -> GenResult<()> {
     if new_password.is_empty() {
-        return Err("New password cannot be empty".into());
+        return Err(anyhow!("New password cannot be empty"));
     }
     let user_model = user_account::Entity::find()
         .filter(user_account::Column::Username.eq(username))
@@ -34,6 +34,6 @@ pub async fn change_password(
             .await?;
         Ok(())
     } else {
-        Err("User not found".into())
+        Err(anyhow!("User not found"))
     }
 }

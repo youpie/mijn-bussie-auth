@@ -4,21 +4,18 @@ use rustls::crypto::CryptoProvider;
 use rustls::crypto::ring::default_provider;
 
 use crate::error::OptionResult;
-use crate::web::api::Api;
+use crate::prelude::*;
 
-pub mod bypass;
-pub mod error;
-mod instance_handling;
+mod error;
+pub mod instance_handling;
+pub mod prelude;
 mod web;
-
-type GenResult<T> = Result<T, GenError>;
-type GenError = Box<dyn std::error::Error + Send + Sync + 'static>;
 
 #[dotenvy::load(override_ = true)]
 #[tokio::main]
 async fn main() -> GenResult<()> {
     CryptoProvider::install_default(default_provider()).unwrap();
-    Api::new().await?.serve().await?;
+    AppState::new().await?.serve().await?;
     Ok(())
 }
 

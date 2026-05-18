@@ -1,6 +1,9 @@
 use std::fmt::Display;
 
-use crate::GenResult;
+use anyhow::anyhow;
+
+pub type GenResult<T> = Result<T, GenError>;
+pub type GenError = anyhow::Error;
 
 pub trait OptionResult<T> {
     fn result(self) -> GenResult<T>;
@@ -11,13 +14,13 @@ impl<T> OptionResult<T> for Option<T> {
     fn result(self) -> GenResult<T> {
         match self {
             Some(value) => Ok(value),
-            None => Err("Option Unwrap".into()),
+            None => Err(anyhow!("Option Unwrap")),
         }
     }
     fn result_reason(self, reason: &str) -> GenResult<T> {
         match self {
             Some(value) => Ok(value),
-            None => Err(reason.into()),
+            None => Err(anyhow!("{}", reason)),
         }
     }
 }

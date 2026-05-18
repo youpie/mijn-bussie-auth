@@ -1,12 +1,10 @@
-use axum::response::IntoResponse;
-use entity::user_data;
 use reqwest::StatusCode;
 use sea_orm::{ActiveValue::Set, DatabaseConnection, EntityTrait, IntoActiveModel};
 use serde::Deserialize;
 
-use crate::{
-    Client, GenResult, encrypt_value, instance_handling::instance_api::Instance, web::user::UserAccount
-};
+use crate::{Client, encrypt_value};
+
+use super::*;
 
 #[derive(Debug, Deserialize, Default)]
 pub struct InstanceInformation {
@@ -55,7 +53,7 @@ impl InstanceInformation {
         }
 
         user_data::Entity::update(instance_data).exec(db).await?;
-        Instance::refresh_user(Some(&user_name)).await?;
+        refresh_user(Some(&user_name)).await?;
         Ok(StatusCode::OK.into_response())
     }
 }

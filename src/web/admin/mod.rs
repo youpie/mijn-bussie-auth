@@ -1,17 +1,13 @@
-use axum::Router;
-use entity::user_account;
 use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
 
-use crate::{
-    GenResult, OptionResult,
-    instance_handling::{self, admin::AdminQuery},
-    web::api::Api,
-};
+use crate::instance_handling::{self, admin::AdminQuery};
+
+use super::*;
 
 pub mod account_handling;
 pub mod find;
 
-pub fn admin_router() -> Router<Api> {
+pub fn admin_router() -> Router<AppState> {
     Router::new()
         .merge(instance_handling::admin_router())
         .merge(self::find::router())
@@ -29,6 +25,6 @@ async fn find_user_account(
             .await?
             .result_reason("Account not found")?)
     } else {
-        Err("Query does not contain user account".into())
+        Err(anyhow!("Query does not contain user account"))
     }
 }

@@ -1,6 +1,5 @@
 use std::{path::PathBuf, str::FromStr};
 
-use axum::Router;
 use axum_login::{AuthManagerLayerBuilder, login_required, permission_required};
 use axum_server::tls_rustls::RustlsConfig;
 use dotenvy::var;
@@ -11,22 +10,23 @@ use tower_sessions::{Expiry, SessionManagerLayer, cookie::time::Duration};
 use tower_sessions_sqlx_store::PostgresStore;
 
 use crate::{
-    GenResult, instance_handling,
+    instance_handling,
     web::{
         admin, auth, new_user,
         user::{Backend, Role},
     },
 };
 
+use super::*;
+
 #[derive(Debug, Clone)]
-pub struct Api {
+pub struct AppState {
     pub db: DatabaseConnection,
 }
 
-impl Api {
+impl AppState {
     pub async fn new() -> GenResult<Self> {
-        
-        let db = Database::connect(&Api::db_url()?)
+        let db = Database::connect(&AppState::db_url()?)
             .await
             .expect("Could not connect to database");
         println!("Connected to database!");
@@ -36,7 +36,7 @@ impl Api {
     fn db_url() -> GenResult<String> {
         Ok(match var("AUTH_DATABASE_URL") {
             Ok(url) => url,
-            Err(_) => var("DATABASE_URL")?
+            Err(_) => var("DATABASE_URL")?,
         })
     }
 
@@ -45,7 +45,7 @@ impl Api {
         //
         // This uses `tower-sessions` to establish a layer that will provide the session
         // as a request extension.
-        let pg_pool = PgPool::connect_lazy(&Api::db_url()?)?;
+        let pg_pool = PgPool::connect_lazy(&AppState::db_url()?)?;
         let session_store = PostgresStore::new(pg_pool);
 
         session_store.migrate().await?;
@@ -79,7 +79,7 @@ impl Api {
             .merge(instance_handling::protected_router())
             .merge(super::protected::protected_router())
             .route_layer(login_required!(Backend))
-            .nest("/bypass", crate::bypass::router())
+            .nest("/bypass", instance_handling::bypass::router())
             .merge(auth::router())
             .merge(new_user::router())
             .layer(auth_layer)

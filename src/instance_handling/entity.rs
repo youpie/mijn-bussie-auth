@@ -1,13 +1,12 @@
-use entity::{user_data, user_properties};
 use sea_orm::ActiveValue::{NotSet, Set};
 // type UserPropertiesModel = user_properties::Model;
-use crate::{Client, GenResult, decrypt_value, encrypt_value};
+use crate::{Client, decrypt_value, encrypt_value};
 use sea_orm::ActiveModelTrait;
 use sea_orm::{ColumnTrait, IntoActiveModel};
 use sea_orm::{DatabaseConnection, DerivePartialModel, EntityTrait, QueryFilter};
 use serde::{Deserialize, Serialize};
 
-pub type UserDataModel = user_data::Model;
+use super::*;
 
 const EMAIL_INTERVAL: i32 = 3 * 60;
 const BARE_INTERVAL: i32 = 6 * 60;
@@ -111,7 +110,7 @@ impl MijnBussieInstance {
     pub fn get_name(&self) -> GenResult<String> {
         match &self.name {
             Some(name) => Ok(decrypt_value(name, false)?),
-            None => Err("Empty name".into()),
+            None => Err(anyhow!("Empty name")),
         }
     }
 
@@ -194,8 +193,7 @@ impl MijnBussieInstance {
                 "An existing instance with the same username has been found, determining if actual match"
             );
             let match_email = decrypt_value(&instance_match.email, true)?;
-            let match_personeelsnummer =
-                decrypt_value(&instance_match.personeelsnummer, true)?;
+            let match_personeelsnummer = decrypt_value(&instance_match.personeelsnummer, true)?;
             if match_email == self.email.to_lowercase()
                 && match_personeelsnummer == self.personeelsnummer.to_lowercase()
             {

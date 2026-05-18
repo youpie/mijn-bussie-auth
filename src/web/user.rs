@@ -1,3 +1,5 @@
+use super::*;
+
 use std::collections::HashSet;
 use std::str::FromStr;
 
@@ -12,8 +14,6 @@ use sea_orm::{DatabaseConnection, DerivePartialModel, EntityTrait, QueryFilter};
 use serde::Deserialize;
 use strum::AsRefStr;
 use tokio::task;
-
-use crate::GenResult;
 
 #[derive(strum::EnumString, AsRefStr, Debug, Clone, PartialEq, Eq, Hash, Default, Copy)]
 pub enum Role {
@@ -32,7 +32,7 @@ pub struct UserAccount {
 impl UserAccount {
     pub async fn add_user(db: &DatabaseConnection, creds: Credentials) -> GenResult<()> {
         if creds.is_empty() {
-            return Err("Empty credentials".into());
+            return Err(anyhow!("Empty credentials"));
         }
 
         // If it is the first user, it will automatically be made Admin
