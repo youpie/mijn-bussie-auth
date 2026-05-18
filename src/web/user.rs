@@ -15,7 +15,9 @@ use serde::Deserialize;
 use strum::AsRefStr;
 use tokio::task;
 
-#[derive(strum::EnumString, AsRefStr, Debug, Clone, PartialEq, Eq, Hash, Default, Copy)]
+#[derive(
+    strum::EnumString, AsRefStr, Debug, Clone, PartialEq, Eq, Hash, Default, Copy, Deserialize,
+)]
 pub enum Role {
     Admin,
     #[default]
@@ -32,7 +34,7 @@ pub struct UserAccount {
 impl UserAccount {
     pub async fn add_user(db: &DatabaseConnection, creds: Credentials) -> GenResult<()> {
         if creds.is_empty() {
-            return Err(anyhow!("Empty credentials"));
+            return Err(anyhow!("Empty credentials").into());
         }
 
         // If it is the first user, it will automatically be made Admin
@@ -44,7 +46,10 @@ impl UserAccount {
         };
 
         let password_hash =
-            tokio::task::spawn_blocking(|| bcrypt::hash(creds.password, DEFAULT_COST)).await??;
+            tokio::task::spawn_blocking(|| bcrypt::hash(creds.password, DEFAULT_COST))
+                .await
+                .d()?
+                .d()?;
         let account = user_account::ActiveModel {
             account_id: NotSet,
             username: Set(creds.username),

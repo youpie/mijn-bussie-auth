@@ -36,7 +36,7 @@ impl AppState {
     fn db_url() -> GenResult<String> {
         Ok(match var("AUTH_DATABASE_URL") {
             Ok(url) => url,
-            Err(_) => var("DATABASE_URL")?,
+            Err(_) => var("DATABASE_URL").d()?,
         })
     }
 
@@ -45,10 +45,10 @@ impl AppState {
         //
         // This uses `tower-sessions` to establish a layer that will provide the session
         // as a request extension.
-        let pg_pool = PgPool::connect_lazy(&AppState::db_url()?)?;
+        let pg_pool = PgPool::connect_lazy(&AppState::db_url()?).d()?;
         let session_store = PostgresStore::new(pg_pool);
 
-        session_store.migrate().await?;
+        session_store.migrate().await.d()?;
         let session_layer = SessionManagerLayer::new(session_store)
             .with_secure(true)
             .with_same_site(tower_sessions::cookie::SameSite::None)
@@ -86,7 +86,7 @@ impl AppState {
             .layer(cors)
             .with_state(test);
 
-        let port = var("API_PORT")?;
+        let port = var("API_PORT").d()?;
         println!("Starting app at port {port}");
         axum_server::bind_rustls(
             std::net::SocketAddr::from_str(&format!("0.0.0.0:{port}")).unwrap(),

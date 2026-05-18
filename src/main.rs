@@ -1,11 +1,9 @@
-use base64::{Engine, prelude::BASE64_STANDARD_NO_PAD};
-use dotenvy::var;
 use rustls::crypto::CryptoProvider;
 use rustls::crypto::ring::default_provider;
 
-use crate::error::OptionResult;
 use crate::prelude::*;
 
+mod crypt;
 mod error;
 pub mod instance_handling;
 pub mod prelude;
@@ -17,34 +15,6 @@ async fn main() -> GenResult<()> {
     CryptoProvider::install_default(default_provider()).unwrap();
     AppState::new().await?.serve().await?;
     Ok(())
-}
-
-pub fn encrypt_value(value: &str) -> GenResult<String> {
-    let secret_string = var("PASSWORD_SECRET")?;
-    let secret = secret_string.as_bytes();
-    let value = BASE64_STANDARD_NO_PAD.encode(
-        simplestcrypt::encrypt_and_serialize(secret, value.as_bytes())
-            .ok()
-            .result_reason("Failed to encode password")?,
-    );
-    Ok(value)
-}
-
-fn decrypt_value(encrypted_value: &str, make_lowercase: bool) -> GenResult<String> {
-    let secret_string = var("PASSWORD_SECRET")?;
-    let secret = secret_string.as_bytes();
-    let mut text = String::from_utf8(
-        simplestcrypt::deserialize_and_decrypt(
-            secret,
-            &BASE64_STANDARD_NO_PAD.decode(encrypted_value)?,
-        )
-        .ok()
-        .result_reason("Could not deserialize password")?,
-    )?;
-    if make_lowercase {
-        text = text.to_lowercase();
-    }
-    Ok(text)
 }
 
 pub trait Client {

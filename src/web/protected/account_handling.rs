@@ -22,11 +22,13 @@ pub async fn change_password_protected(
     auth_session: AuthSession,
     State(data): State<AppState>,
     Json(new_password): Json<PasswordChange>,
-) -> impl IntoResponse {
-    let db = &data.db;
-    let user = auth_session.user.expect("No user in protected space");
-    match change_password(db, user.inner.username, new_password.password).await {
-        Ok(_) => StatusCode::OK,
-        Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
+) -> GenResult<StatusCode> {
+    if let Some(password) = new_password.password {
+        let db = &data.db;
+        let user = auth_session.user.expect("No user in protected space");
+        change_password(db, user.inner.username, password).await?;
+        Ok(StatusCode::OK)
+    } else {
+        Ok(StatusCode::BAD_REQUEST)
     }
 }

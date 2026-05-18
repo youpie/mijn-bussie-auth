@@ -25,6 +25,6 @@ async fn find_user_account(
             .await?
             .result_reason("Account not found")?)
     } else {
-        Err(anyhow!("Query does not contain user account"))
+        Err(AppError::NotFound)
     }
 }
