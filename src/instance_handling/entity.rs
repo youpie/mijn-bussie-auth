@@ -212,7 +212,8 @@ impl MijnBussieInstance {
     }
 
     pub async fn update_properties(self, db: &DatabaseConnection) -> GenResult<()> {
-        let properties = self.user_properties.into_active_model().reset_all();
+        let properties = self.user_properties.into_active_model();
+
         user_properties::Entity::update(properties)
             .validate()?
             .exec(db)
@@ -234,8 +235,10 @@ impl MijnBussieInstance {
 }
 
 pub trait FindByUsername {
-    async fn find_by_username(db: &DatabaseConnection, user_name: &str)
-    -> GenResult<UserDataModel>;
+    fn find_by_username(
+        db: &DatabaseConnection,
+        user_name: &str,
+    ) -> impl std::future::Future<Output = GenResult<UserDataModel>> + Send;
 }
 
 impl FindByUsername for user_data::Model {
@@ -281,12 +284,12 @@ impl Client for MijnBussieInstance {
     }
 }
 
-trait Filled {
-    fn is_filled(&self) -> bool;
+trait ToInstance {
+    fn map_to_instance(self) -> MijnBussieInstance;
 }
 
-impl Filled for String {
-    fn is_filled(&self) -> bool {
-        !self.is_empty()
+impl ToInstance for user_data::Model {
+    fn map_to_instance(self) -> MijnBussieInstance {
+        todo!()
     }
 }

@@ -66,8 +66,10 @@ pub async fn get_failed_users(
 
 pub async fn update_properties_admin(
     State(data): State<AppState>,
-    Json(instance): Json<MijnBussieInstance>,
+    Json(properties): Json<user_properties::Model>,
 ) -> GenResult<()> {
+    let mut instance = MijnBussieInstance::default();
+    instance.user_properties = properties;
     let db = &data.db;
     Ok(instance.update_properties(db).await?)
 }

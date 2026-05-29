@@ -191,6 +191,7 @@ pub type AuthSession = axum_login::AuthSession<Backend>;
 
 pub trait GetUser {
     fn get_user(self) -> Result<UserAccount, AppError>;
+    #[allow(async_fn_in_trait)]
     async fn _is_admin(&self) -> bool;
 }
 

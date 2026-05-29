@@ -30,12 +30,14 @@ impl AppErrorContext {
 
 #[derive(Debug, Error)]
 pub enum AppError {
-    #[error("Database error occured: {:?}", 0.to_string())]
+    #[error("Database error occured: {:?}", _0.to_string())]
     Database(#[from] sea_orm::DbErr),
     #[error(transparent)]
     InstanceError(#[from] crate::instance_handling::instance_api::InstanceApiError),
     #[error("User error: {:?}", ._0.admin_message)]
     UserError(AppErrorContext),
+    #[error("Parse error: {}", 0.to_string())]
+    Parse(#[from] serde_json::Error),
     #[error("Unauthorized")]
     Unauthorized,
     #[error("User is not found")]
@@ -50,6 +52,7 @@ pub enum AppError {
 
 impl IntoResponse for AppError {
     fn into_response(self) -> axum::response::Response {
+        println!("{}", &self.to_string());
         match self {
             Self::Database(_) => StatusCode::INTERNAL_SERVER_ERROR.into_response(),
             Self::Generic(_) => StatusCode::INTERNAL_SERVER_ERROR.into_response(),
@@ -57,6 +60,7 @@ impl IntoResponse for AppError {
             Self::Unauthorized => StatusCode::UNAUTHORIZED.into_response(),
             Self::NotFound => (StatusCode::NOT_FOUND, "Not found").into_response(),
             Self::AlreadyExists => StatusCode::CONFLICT.into_response(),
+            Self::Parse(_) => StatusCode::INTERNAL_SERVER_ERROR.into_response(),
             Self::UserError(error) => (StatusCode::BAD_REQUEST, error.user()).into_response(),
             Self::Multiple(options) => (
                 StatusCode::MULTIPLE_CHOICES,
