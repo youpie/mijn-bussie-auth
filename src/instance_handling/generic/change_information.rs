@@ -1,4 +1,4 @@
-use sea_orm::{ActiveValue::Set, DatabaseConnection, EntityTrait, IntoActiveModel};
+use sea_orm::{ActiveValue::Set, EntityTrait, IntoActiveModel};
 use serde::Deserialize;
 
 use crate::{Client, crypt::encrypt_value};
@@ -17,7 +17,7 @@ impl InstanceInformation {
     // Generic function for chaning user properties
     pub async fn change_information(
         &self,
-        db: &DatabaseConnection,
+        state: &AppState,
         instance: &user_data::Model,
     ) -> GenResult<()> {
         let user_name = instance.user_name.clone();
@@ -35,8 +35,10 @@ impl InstanceInformation {
             instance_data.user_name = Set(new_username.clone());
         }
 
-        user_data::Entity::update(instance_data).exec(db).await?;
-        refresh_user(Some(&user_name)).await?;
+        user_data::Entity::update(instance_data)
+            .exec(&state.db)
+            .await?;
+        refresh_user(&state.client, Some(&user_name)).await?;
         Ok(())
     }
 }

@@ -12,57 +12,47 @@ pub fn router() -> Router<AppState> {
 async fn get_email_list(
     Query(user): Query<AdminQuery>,
     State(data): State<AppState>,
-) -> impl IntoResponse {
+) -> Json<Vec<String>> {
     let db = &data.db;
     let all_users = get_users(db, user.to_option()).await;
-
-    (
-        StatusCode::OK,
-        Json(
-            all_users
-                .iter()
-                .filter_map(|user| user.get_email().warn_owned("Decrypting email").ok())
-                .collect::<Vec<String>>(),
-        ),
+    Json(
+        all_users
+            .iter()
+            .filter_map(|user| user.get_email().warn_owned("Decrypting email").ok())
+            .collect::<Vec<String>>(),
     )
-        .into_response()
 }
 
 async fn get_name_list(
     Query(user): Query<AdminQuery>,
     State(data): State<AppState>,
-) -> impl IntoResponse {
+) -> Json<Vec<String>> {
     let db = &data.db;
     let all_users = get_users(db, user.to_option()).await;
 
-    (
-        StatusCode::OK,
-        Json(
-            all_users
-                .iter()
-                .filter_map(|user| user.get_name().ok())
-                .collect::<Vec<String>>(),
-        ),
+    Json(
+        all_users
+            .iter()
+            .filter_map(|user| user.get_name().ok())
+            .collect::<Vec<String>>(),
     )
-        .into_response()
 }
 
 async fn get_account_list(
     State(data): State<AppState>,
     Query(users): Query<AdminQuery>,
-) -> impl IntoResponse {
+) -> GenResult<Json<Vec<(String, String, Option<String>)>>> {
     let db = &data.db;
     let all_accounts = user_account::Entity::find()
         .find_with_related(user_data::Entity)
         .all(db)
-        .await
-        .warn_owned("Getting accounts")
-        .unwrap_or_default();
+        .await?;
 
     // If a user account has been specified. Print only that user
     let specific_user = users
         .get_user_account(db, true)
         .await
+        .ok()
         .and_then(|account| Some(account.inner.username.clone()));
     let mut account_combination = vec![];
     for account in all_accounts {
@@ -75,7 +65,7 @@ async fn get_account_list(
         }
     }
 
-    (StatusCode::OK, Json(account_combination)).into_response()
+    Ok(Json(account_combination))
 }
 
 async fn get_users(db: &DatabaseConnection, users: Option<AdminQuery>) -> Vec<MijnBussieInstance> {
@@ -84,8 +74,8 @@ async fn get_users(db: &DatabaseConnection, users: Option<AdminQuery>) -> Vec<Mi
         let mut users = vec![];
         for instance in instances {
             match MijnBussieInstance::find_by_username(db, &instance).await {
-                Some(user) => users.push(user),
-                None => continue,
+                Ok(user) => users.push(user),
+                Err(_) => continue,
             };
         }
         users

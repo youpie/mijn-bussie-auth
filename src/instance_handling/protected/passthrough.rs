@@ -9,21 +9,27 @@ pub fn router() -> Router<AppState> {
 pub async fn generic_instance_get(
     auth_session: AuthSession,
     Path(request_type): Path<InstanceGetRequests>,
+    State(data): State<AppState>,
 ) -> GenResult<String> {
     let user = auth_session.get_user()?;
-    Ok(
-        instance_api::get_request(&user.inner.backend_user.unwrap_or_default(), request_type)
-            .await?,
+    Ok(instance_api::get_request(
+        &data.client,
+        &user.inner.backend_user.unwrap_or_default(),
+        request_type,
     )
+    .await?)
 }
 
 pub async fn generic_instance_post(
     auth_session: AuthSession,
     Path(request_type): Path<InstancePostRequests>,
+    State(data): State<AppState>,
 ) -> GenResult<String> {
     let user = auth_session.get_user()?;
-    Ok(
-        instance_api::post_request(&user.inner.backend_user.unwrap_or_default(), request_type)
-            .await?,
+    Ok(instance_api::post_request(
+        &data.client,
+        &user.inner.backend_user.unwrap_or_default(),
+        request_type,
     )
+    .await?)
 }

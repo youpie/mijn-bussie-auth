@@ -1,8 +1,7 @@
+use crate::crypt::decrypt_value;
 use axum::Json;
 use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, Related};
 use serde::Deserialize;
-
-use crate::decrypt_value;
 
 use super::*;
 
@@ -19,32 +18,27 @@ pub struct AdminQuery {
 }
 
 impl AdminQuery {
+    // Get user account based on account name
     pub async fn get_user_account(
         &self,
         db: &DatabaseConnection,
         find_by_instance: bool,
-    ) -> Option<UserAccount> {
+    ) -> GenResult<UserAccount> {
         if let Some(account_name) = &self.account_name {
             let accounts = user_account::Entity::find()
                 .into_partial_model::<UserAccount>()
                 .all(db)
-                .await
-                .ok()
-                .and_then(|account| {
-                    Some(
-                        account
-                            .into_iter()
-                            .filter(|account| {
-                                account.inner.username.to_lowercase() == account_name.to_lowercase()
-                            })
-                            .collect::<Vec<_>>(),
-                    )
-                });
-            accounts.and_then(|accounts| accounts.into_iter().nth(0))
+                .await?
+                .into_iter()
+                .filter(|account| {
+                    account.inner.username.to_lowercase() == account_name.to_lowercase()
+                })
+                .collect::<Vec<_>>();
+            accounts.into_iter().nth(0).not_found()
         } else if find_by_instance {
-            self.get_account_from_instance(db).await
+            self.get_account_from_instance(db).await.not_found()
         } else {
-            None
+            None.not_found()
         }
     }
 
@@ -189,15 +183,12 @@ impl AdminQuery {
         response
     }
 
-    pub async fn get_instance_from_query(&self, db: &DatabaseConnection) -> Option<UserDataModel> {
-        let instance_name = match Self::map_instance_query_result(self.get_instance_name(db).await)
-        {
-            Ok(name) => name,
-            Err(_) => {
-                return None;
-            }
-        };
-        UserDataModel::find_by_username(db, &instance_name).await
+    pub async fn get_instance_from_query(
+        &self,
+        db: &DatabaseConnection,
+    ) -> GenResult<UserDataModel> {
+        let instance_name = Self::map_instance_query_result(self.get_instance_name(db).await)?;
+        Ok(UserDataModel::find_by_username(db, &instance_name).await?)
     }
 
     pub fn to_option(self) -> Option<Self> {

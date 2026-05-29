@@ -32,7 +32,7 @@ pub async fn attach_user_to_instance(
     Ok(())
 }
 
-pub async fn remove_user_from_instance(
+pub async fn detach_user_from_instance(
     db: &DatabaseConnection,
     account: &UserAccount,
 ) -> GenResult<()> {

@@ -22,6 +22,7 @@ use super::*;
 #[derive(Debug, Clone)]
 pub struct AppState {
     pub db: DatabaseConnection,
+    pub client: reqwest::Client,
 }
 
 impl AppState {
@@ -29,8 +30,9 @@ impl AppState {
         let db = Database::connect(&AppState::db_url()?)
             .await
             .expect("Could not connect to database");
+        let client = crate::instance_handling::instance_api::create_client()?;
         println!("Connected to database!");
-        Ok(Self { db })
+        Ok(Self { db, client })
     }
 
     fn db_url() -> GenResult<String> {

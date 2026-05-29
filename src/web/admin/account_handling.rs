@@ -16,29 +16,25 @@ pub fn router() -> Router<AppState> {
 pub async fn role(
     State(data): State<AppState>,
     Query(query): Query<AdminQuery>,
-) -> impl IntoResponse {
-    match query
+) -> GenResult<String> {
+    Ok(query
         .get_user_account(&data.db, true)
         .await
-        .and_then(|account| Some(account.inner.role))
-    {
-        Some(role) => (StatusCode::OK, role),
-        None => (StatusCode::NOT_FOUND, "Account niet gevonden".to_owned()),
-    }
-    .into_response()
+        .and_then(|account| Ok(account.inner.role))?)
 }
 
 pub async fn change_password_admin(
     State(data): State<AppState>,
     Query(query): Query<AdminQuery>,
     Json(new_password): Json<generic::account_handling::PasswordChange>,
-) -> GenResult<StatusCode> {
+) -> GenResult<()> {
     if let Some(password) = new_password.password {
         let db = &data.db;
-        change_password(db, query.account_name.unwrap_or_default(), password).await?;
-        Ok(StatusCode::OK)
+        Ok(change_password(db, query.account_name.unwrap_or_default(), password).await?)
     } else {
-        Ok(StatusCode::BAD_REQUEST)
+        Err(AppError::UserError(AppErrorContext::new_user(
+            "Please enter new password!".to_owned(),
+        )))
     }
 }
 
@@ -52,13 +48,15 @@ pub async fn change_role(
     State(data): State<AppState>,
     Query(query): Query<AdminQuery>,
     Json(new_role): Json<NewRole>,
-) -> GenResult<impl IntoResponse> {
+) -> GenResult<()> {
     let selected_user = query.account_name.as_deref().unwrap_or_default();
     if auth_session
         .user
         .is_some_and(|auth_user| &auth_user.inner.username == selected_user)
     {
-        return Ok((StatusCode::NOT_ACCEPTABLE, "Can't change own role!").into_response());
+        return Err(AppError::UserError(AppErrorContext::new_user(
+            "Can't change own Role".to_owned(),
+        )));
     }
     let db = &data.db;
     let user_account = find_user_account(db, &query).await?;
@@ -68,26 +66,28 @@ pub async fn change_role(
         .validate()?
         .exec(db)
         .await?;
-    Ok(().into_response())
+    Ok(())
 }
 
 pub async fn delete_account(
     auth_session: AuthSession,
     State(data): State<AppState>,
     Query(query): Query<AdminQuery>,
-) -> GenResult<impl IntoResponse> {
+) -> GenResult<()> {
     let db = &data.db;
-    let authenticated_user = auth_session.user.expect("No user in Admin space");
+    let authenticated_user = auth_session.get_user()?;
 
     // Only allow the admin to delete their account if they are the only user
     let current_accounts = user_account::Entity::find().count(db).await?;
-    let user_account = query.get_user_account(db, true).await.result()?;
+    let user_account = query.get_user_account(db, true).await?;
 
     if current_accounts != 1 && user_account.inner.username == authenticated_user.inner.username {
-        return Ok((StatusCode::NOT_ACCEPTABLE, "Can't delete own account").into_response());
+        return Err(AppError::UserError(AppErrorContext::new_user(
+            "Can't delete own account".to_owned(),
+        )));
     }
     user_account::Entity::delete(user_account.inner.into_active_model())
         .exec(db)
         .await?;
-    Ok(().into_response())
+    Ok(())
 }

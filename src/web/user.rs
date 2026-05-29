@@ -33,7 +33,9 @@ pub struct UserAccount {
 impl UserAccount {
     pub async fn add_user(db: &DatabaseConnection, creds: Credentials) -> GenResult<()> {
         if creds.is_empty() {
-            return Err(anyhow!("Empty credentials").into());
+            return Err(AppError::UserError(AppErrorContext::new_user(
+                "Empty credentials!".to_owned(),
+            )));
         }
 
         // If it is the first user, it will automatically be made Admin
@@ -66,7 +68,7 @@ impl UserAccount {
             .find_related(user_data::Entity)
             .one(db)
             .await?
-            .ok_or(AppError::NotFound)?)
+            .not_found()?)
     }
 }
 

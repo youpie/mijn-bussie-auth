@@ -3,7 +3,7 @@
 use std::str::FromStr;
 
 use dotenvy::var;
-use reqwest::{Response, StatusCode, Url};
+use reqwest::{Client, Response, StatusCode, Url};
 use serde::Deserialize;
 use strum::{AsRefStr, EnumString};
 use thiserror::Error;
@@ -30,11 +30,11 @@ pub enum InstanceApiError {
 
 trait MapResponse {
     /// Map the Reqwest response to what that means for the Instance
-    async fn map_response(self) -> Self;
+    async fn map_response(self) -> Result<Response, InstanceApiError>;
 }
 
-impl MapResponse for Result<Response, InstanceApiError> {
-    async fn map_response(self) -> Self {
+impl MapResponse for Result<Response, reqwest::Error> {
+    async fn map_response(self) -> Result<Response, InstanceApiError> {
         match self {
             Ok(response) => match response.status() {
                 StatusCode::NO_CONTENT => Err(InstanceApiError::NotFound),
@@ -44,10 +44,8 @@ impl MapResponse for Result<Response, InstanceApiError> {
                 StatusCode::UNAUTHORIZED => Err(InstanceApiError::IncorrectKey),
                 _ => Ok(response),
             },
-            Err(InstanceApiError::Reqwest(e)) if e.is_connect() => {
-                Err(InstanceApiError::Offline(e.to_string()))
-            }
-            Err(e) => Err(e),
+            Err(e) if e.is_connect() => Err(InstanceApiError::Offline(e.to_string())),
+            Err(e) => Err(e.into()),
         }
     }
 }
@@ -82,12 +80,11 @@ pub enum InstancePostRequests {
     Welcome,
 }
 
-async fn send_request(url: Url) -> Result<Response, InstanceApiError> {
-    let client = reqwest::Client::builder()
+pub fn create_client() -> Result<Client, InstanceApiError> {
+    Ok(reqwest::Client::builder()
         .danger_accept_invalid_certs(true)
         .danger_accept_invalid_hostnames(true)
-        .build()?;
-    Ok(client.get(url).send().await?)
+        .build()?)
 }
 
 fn create_base_url(user_name: Option<&str>) -> Result<Url, InstanceApiError> {
@@ -123,7 +120,14 @@ fn set_query(mut url: Url) -> Url {
     url
 }
 
-pub async fn refresh_user(user_name: Option<&str>) -> Result<String, InstanceApiError> {
+async fn send_request(client: &Client, url: Url) -> Result<Response, InstanceApiError> {
+    Ok(client.get(url).send().await.map_response().await?)
+}
+
+pub async fn refresh_user(
+    client: &Client,
+    user_name: Option<&str>,
+) -> Result<String, InstanceApiError> {
     let mut url = create_base_url(None)?;
     if let Some(user_name) = user_name {
         url = url.join(&format!("refresh/{user_name}"))?;
@@ -132,37 +136,40 @@ pub async fn refresh_user(user_name: Option<&str>) -> Result<String, InstanceApi
     }
 
     url = set_query(url);
-    let request = send_request(url).await.map_response().await?;
+    let request = send_request(client, url).await?;
     Ok(request.text().await?)
 }
 
 pub async fn get_request(
+    client: &Client,
     user_name: &str,
     request_type: InstanceGetRequests,
 ) -> Result<String, InstanceApiError> {
     let mut url = create_base_url(Some(user_name))?.join(request_type.as_ref())?;
     url = set_query(url);
-    let request = send_request(url).await.map_response().await?;
+    let request = send_request(client, url).await?;
     Ok(request.text().await?)
 }
 
 pub async fn post_request(
+    client: &Client,
     user_name: &str,
     request_type: InstancePostRequests,
 ) -> Result<String, InstanceApiError> {
     let mut url = create_base_url(Some(user_name))?.join(request_type.as_ref())?;
     url = set_query(url);
-    let request = send_request(url).await.map_response().await?;
+    let request = send_request(client, url).await?;
     Ok(request.text().await?)
 }
 
 pub async fn kuma_request(
+    client: &Client,
     user_name: Option<&str>,
     request: KumaRequest,
 ) -> Result<(), InstanceApiError> {
     let mut url = create_base_kuma_url(user_name, request)?;
     url = set_query(url);
-    send_request(url).await.map_response().await?;
+    send_request(client, url).await?;
     Ok(())
 }
 

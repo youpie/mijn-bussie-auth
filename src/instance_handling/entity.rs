@@ -90,7 +90,7 @@ impl MijnBussieInstance {
             .into_partial_model::<Self>()
             .one(db)
             .await?
-            .ok_or(AppError::NotFound)
+            .not_found()
     }
 
     pub async fn get_all_users(db: &DatabaseConnection) -> GenResult<Vec<Self>> {
@@ -234,17 +234,20 @@ impl MijnBussieInstance {
 }
 
 pub trait FindByUsername {
-    async fn find_by_username(db: &DatabaseConnection, user_name: &str) -> Option<UserDataModel>;
+    async fn find_by_username(db: &DatabaseConnection, user_name: &str)
+    -> GenResult<UserDataModel>;
 }
 
 impl FindByUsername for user_data::Model {
-    async fn find_by_username(db: &DatabaseConnection, user_name: &str) -> Option<UserDataModel> {
+    async fn find_by_username(
+        db: &DatabaseConnection,
+        user_name: &str,
+    ) -> GenResult<UserDataModel> {
         user_data::Entity::find()
             .filter(user_data::Column::UserName.eq(user_name))
             .one(db)
-            .await
-            .ok()
-            .flatten()
+            .await?
+            .not_found()
     }
 }
 

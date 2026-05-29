@@ -7,7 +7,7 @@ use thiserror::Error;
 
 pub type GenResult<T> = Result<T, AppError>;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct AppErrorContext {
     user_message: Option<String>,
     admin_message: Option<String>,
@@ -80,6 +80,9 @@ impl<T, E: Into<anyhow::Error>> IntoAnyhow<T> for Result<T, E> {
 pub trait OptionResult<T> {
     fn result(self) -> GenResult<T>;
     fn result_reason(self, reason: &str) -> GenResult<T>;
+
+    /// Map an option `None` to a `AppError::NotFound`
+    fn not_found(self) -> GenResult<T>;
 }
 
 impl<T> OptionResult<T> for Option<T> {
@@ -93,6 +96,13 @@ impl<T> OptionResult<T> for Option<T> {
         match self {
             Some(value) => Ok(value),
             None => Err(anyhow!("{}", reason).into()),
+        }
+    }
+
+    fn not_found(self) -> GenResult<T> {
+        match self {
+            Some(value) => Ok(value),
+            None => Err(AppError::NotFound),
         }
     }
 }

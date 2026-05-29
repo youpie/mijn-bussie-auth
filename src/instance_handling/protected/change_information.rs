@@ -14,8 +14,9 @@ pub async fn change_information_protected(
     State(data): State<AppState>,
     Json(information): Json<InstanceInformation>,
 ) -> GenResult<()> {
-    let db = data.db;
-    let user_instance = auth_session.get_user()?.get_instance_data(&db).await?;
+    let user_instance = auth_session.get_user()?.get_instance_data(&data.db).await?;
     let information = information.censor();
-    Ok(information.change_information(&db, &user_instance).await?)
+    Ok(information
+        .change_information(&data, &user_instance)
+        .await?)
 }

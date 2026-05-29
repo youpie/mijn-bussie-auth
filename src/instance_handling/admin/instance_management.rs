@@ -15,7 +15,7 @@ pub fn router() -> Router<AppState> {
             post(change_instance_password_admin),
         )
         .route("/assign_instance", post(assign_instance_to_account))
-        .route("/unassign_instance", post(unassign_instance_to_account))
+        .route("/unassign_instance", post(unassign_instance_from_account))
         .route("/update_properties", post(update_properties_admin))
 }
 
@@ -38,25 +38,28 @@ pub async fn get_example_user() -> Json<MijnBussieInstance> {
 pub async fn get_failed_users(
     State(data): State<AppState>,
 ) -> GenResult<Json<HashMap<String, Value>>> {
-    let db = &data.db;
-    let instances = user_data::Entity::find().all(db).await?;
+    let instances = user_data::Entity::find().all(&data.db).await?;
     let usernames: Vec<String> = instances
         .into_iter()
         .map(|instance| instance.user_name)
         .collect();
     let mut failed_hashmap = HashMap::new();
     for username in usernames {
-        _ = instance_api::get_request(&username, instance_api::InstanceGetRequests::ExitCode)
-            .await
-            .ok()
-            .map(|response| serde_json::from_str::<Value>(&response).ok())
-            .flatten()
-            .is_some_and(|exit_code| {
-                if exit_code["ExitCode"] != "OK" {
-                    failed_hashmap.insert(username, exit_code["ExitCode"].clone());
-                }
-                true
-            });
+        _ = instance_api::get_request(
+            &data.client,
+            &username,
+            instance_api::InstanceGetRequests::ExitCode,
+        )
+        .await
+        .ok()
+        .map(|response| serde_json::from_str::<Value>(&response).ok())
+        .flatten()
+        .is_some_and(|exit_code| {
+            if exit_code["ExitCode"] != "OK" {
+                failed_hashmap.insert(username, exit_code["ExitCode"].clone());
+            }
+            true
+        });
     }
     Ok(Json(failed_hashmap))
 }
@@ -84,49 +87,33 @@ pub async fn create_instance_admin(
 pub async fn assign_instance_to_account(
     State(data): State<AppState>,
     Query(user): Query<AdminQuery>,
-) -> impl IntoResponse {
+) -> GenResult<()> {
     let db = &data.db;
-    if let Some(user_account) = user.get_user_account(db, false).await
-        && let Some(instance_name) = user.instance_name
-        && let Some(instance_data) = UserDataModel::find_by_username(db, &instance_name).await
-    {
-        match attach_user_to_instance(db, &user_account, &instance_data).await {
-            Ok(_) => StatusCode::OK.into_response(),
-            Err(err) => (StatusCode::INTERNAL_SERVER_ERROR, err.to_string()).into_response(),
-        }
+    if let Some(ref instance_name) = user.instance_name {
+        let user_account = user.get_user_account(db, false).await?;
+        let instance_data = UserDataModel::find_by_username(db, instance_name).await?;
+        Ok(attach_user_to_instance(db, &user_account, &instance_data).await?)
     } else {
-        StatusCode::INTERNAL_SERVER_ERROR.into_response()
+        Err(AppError::UserError(AppErrorContext::new_user(
+            "Please set instance name!".to_owned(),
+        )))
     }
 }
 
-pub async fn unassign_instance_to_account(
+pub async fn unassign_instance_from_account(
     State(data): State<AppState>,
     Query(user): Query<AdminQuery>,
-) -> impl IntoResponse {
+) -> GenResult<()> {
     let db = &data.db;
-    if let Some(user_account) = user.get_user_account(db, true).await {
-        match remove_user_from_instance(db, &user_account).await {
-            Ok(_) => StatusCode::OK.into_response(),
-            Err(err) => (StatusCode::INTERNAL_SERVER_ERROR, err.to_string()).into_response(),
-        }
-    } else {
-        StatusCode::INTERNAL_SERVER_ERROR.into_response()
-    }
+    let user_account = user.get_user_account(db, true).await?;
+    Ok(detach_user_from_instance(db, &user_account).await?)
 }
 
 pub async fn change_instance_password_admin(
     State(data): State<AppState>,
     Query(user): Query<AdminQuery>,
     Json(password): Json<InstanceInformation>,
-) -> impl IntoResponse {
-    let db = &data.db;
-    let instance = user.get_instance_from_query(db).await;
-    if let Some(instance) = instance {
-        match password.change_information(db, &instance).await {
-            Ok(_) => StatusCode::OK.into_response(),
-            Err(err) => (StatusCode::INTERNAL_SERVER_ERROR, err.to_string()).into_response(),
-        }
-    } else {
-        (StatusCode::NO_CONTENT, format!("User {:?} not found", user)).into_response()
-    }
+) -> GenResult<()> {
+    let instance = user.get_instance_from_query(&data.db).await?;
+    Ok(password.change_information(&data, &instance).await?)
 }
