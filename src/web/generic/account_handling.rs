@@ -22,7 +22,7 @@ pub async fn change_password(
 ) -> GenResult<()> {
     if new_password.is_empty() {
         return Err(AppError::UserError(AppErrorContext::new_user(
-            "Password cannot be empty",
+            "Password cannot be empty".to_owned(),
         )));
     }
     let user_model = user_account::Entity::find()

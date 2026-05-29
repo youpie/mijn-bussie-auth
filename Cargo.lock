@@ -2036,6 +2036,7 @@ dependencies = [
  "tower-http",
  "tower-sessions",
  "tower-sessions-sqlx-store",
+ "url",
 ]
 
 [[package]]

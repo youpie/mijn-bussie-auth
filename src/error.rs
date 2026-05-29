@@ -9,29 +9,31 @@ pub type GenResult<T> = Result<T, AppError>;
 
 #[derive(Debug)]
 pub struct AppErrorContext {
-    user_message: Option<&'static str>,
-    admin_message: Option<&'static str>,
+    user_message: Option<String>,
+    admin_message: Option<String>,
 }
 
 impl AppErrorContext {
-    pub fn new_user(message: &'static str) -> Self {
+    pub fn new_user(message: String) -> Self {
         Self {
             user_message: Some(message),
             admin_message: None,
         }
     }
-    pub fn user(&self) -> &'static str {
-        match self.user_message {
-            Some(message) => message,
-            None => "",
+    pub fn user(&self) -> String {
+        match &self.user_message {
+            Some(message) => message.to_owned(),
+            None => "".to_owned(),
         }
     }
 }
 
 #[derive(Debug, Error)]
 pub enum AppError {
-    #[error("Database error occured")]
+    #[error("Database error occured: {:?}", 0.to_string())]
     Database(#[from] sea_orm::DbErr),
+    #[error(transparent)]
+    InstanceError(#[from] crate::instance_handling::instance_api::InstanceApiError),
     #[error("User error: {:?}", ._0.admin_message)]
     UserError(AppErrorContext),
     #[error("Unauthorized")]
@@ -49,6 +51,7 @@ impl IntoResponse for AppError {
         match self {
             Self::Database(_) => StatusCode::INTERNAL_SERVER_ERROR.into_response(),
             Self::Generic(_) => StatusCode::INTERNAL_SERVER_ERROR.into_response(),
+            Self::InstanceError(_) => StatusCode::INTERNAL_SERVER_ERROR.into_response(),
             Self::Unauthorized => StatusCode::UNAUTHORIZED.into_response(),
             Self::NotFound => (StatusCode::NOT_FOUND, "Not found").into_response(),
             Self::UserError(error) => (StatusCode::BAD_REQUEST, error.user()).into_response(),
@@ -68,20 +71,6 @@ pub trait IntoAnyhow<T> {
 impl<T, E: Into<anyhow::Error>> IntoAnyhow<T> for Result<T, E> {
     fn d(self) -> Result<T, anyhow::Error> {
         self.map_err(Into::into)
-    }
-}
-
-pub struct AnyErr(pub anyhow::Error);
-
-impl<E: Into<anyhow::Error>> From<E> for AnyErr {
-    fn from(e: E) -> Self {
-        AnyErr(e.into())
-    }
-}
-
-impl From<AnyErr> for AppError {
-    fn from(e: AnyErr) -> Self {
-        AppError::Generic(e.0)
     }
 }
 
