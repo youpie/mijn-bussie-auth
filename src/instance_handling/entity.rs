@@ -1,4 +1,5 @@
 use sea_orm::ActiveValue::{NotSet, Set};
+use strum::Display;
 // type UserPropertiesModel = user_properties::Model;
 use crate::Client;
 use crate::crypt::{decrypt_value, encrypt_value};
@@ -18,10 +19,13 @@ enum InstanceMatch {
     Exact(UserDataModel),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Display)]
 pub enum InstanceMatchReturn {
+    #[strum(to_string = "A new user has been made")]
     NewUser(UserDataModel),
+    #[strum(to_string = "An existing instance has been found, with incorrect credentials")]
     Partial,
+    #[strum(to_string = "An existing instance has been found")]
     Exact(UserDataModel),
 }
 
@@ -70,24 +74,23 @@ impl MijnBussieInstance {
     pub async fn get_id_from_personeelsnummer(
         db: &DatabaseConnection,
         personeelsnummer: &str,
-    ) -> GenResult<Option<i32>> {
+    ) -> GenResult<i32> {
         let personeelsnummer_int = personeelsnummer.parse::<u64>().d()?.to_string();
         let user_exists = user_data::Entity::find()
             .filter(user_data::Column::UserName.contains(personeelsnummer_int))
             .one(db)
             .await?;
-        Ok(user_exists.map(|model| model.user_data_id))
+        Ok(user_exists.map_or(Err(AppError::NotFound), |e| Ok(e.user_data_id))?)
     }
 
-    pub async fn find_by_username(db: &DatabaseConnection, user_name: &str) -> Option<Self> {
+    pub async fn find_by_username(db: &DatabaseConnection, user_name: &str) -> GenResult<Self> {
         user_data::Entity::find()
             .filter(user_data::Column::UserName.eq(user_name))
             .left_join(user_properties::Entity)
             .into_partial_model::<Self>()
             .one(db)
-            .await
-            .ok()
-            .flatten()
+            .await?
+            .ok_or(AppError::NotFound)
     }
 
     pub async fn get_all_users(db: &DatabaseConnection) -> GenResult<Vec<Self>> {

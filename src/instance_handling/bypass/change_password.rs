@@ -2,7 +2,7 @@ use sea_orm::{ActiveValue::Set, EntityTrait, IntoActiveModel};
 use serde::Deserialize;
 use serde_json::Value;
 
-use crate::{decrypt_value, encrypt_value};
+use crate::crypt::{decrypt_value, encrypt_value};
 
 use super::*;
 

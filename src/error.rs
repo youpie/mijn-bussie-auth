@@ -40,6 +40,8 @@ pub enum AppError {
     Unauthorized,
     #[error("User is not found")]
     NotFound,
+    #[error("User already exists")]
+    AlreadyExists,
     #[error("Multiple options")]
     Multiple(Vec<String>),
     #[error(transparent)]
@@ -54,6 +56,7 @@ impl IntoResponse for AppError {
             Self::InstanceError(_) => StatusCode::INTERNAL_SERVER_ERROR.into_response(),
             Self::Unauthorized => StatusCode::UNAUTHORIZED.into_response(),
             Self::NotFound => (StatusCode::NOT_FOUND, "Not found").into_response(),
+            Self::AlreadyExists => StatusCode::CONFLICT.into_response(),
             Self::UserError(error) => (StatusCode::BAD_REQUEST, error.user()).into_response(),
             Self::Multiple(options) => (
                 StatusCode::MULTIPLE_CHOICES,

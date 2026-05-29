@@ -176,17 +176,15 @@ impl AdminQuery {
         }
     }
 
-    pub fn map_instance_query_result(
-        mut names: Vec<String>,
-    ) -> Result<String, (StatusCode, Json<Vec<String>>)> {
+    pub fn map_instance_query_result(mut names: Vec<String>) -> GenResult<String> {
         let response = if names.len() == 1
             && let Some(instance_name) = names.pop()
         {
             Ok(instance_name)
         } else if names.is_empty() {
-            Err((StatusCode::BAD_REQUEST, Json(names)))
+            Err(AppError::NotFound)
         } else {
-            Err((StatusCode::MULTIPLE_CHOICES, Json(names)))
+            Err(AppError::Multiple(names))
         };
         response
     }

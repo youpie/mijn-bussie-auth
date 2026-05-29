@@ -1,4 +1,3 @@
-use hyper::header;
 use sea_orm::EntityTrait;
 use serde_json::Value;
 use std::collections::HashMap;
@@ -23,92 +22,63 @@ pub fn router() -> Router<AppState> {
 pub async fn get_instance_data_admin(
     Query(user): Query<AdminQuery>,
     State(data): State<AppState>,
-) -> impl IntoResponse {
+) -> GenResult<Json<MijnBussieInstance>> {
     let db = &data.db;
-    let instance_name =
-        match AdminQuery::map_instance_query_result(user.get_instance_name(db).await) {
-            Ok(name) => name,
-            Err(names) => return names.into_response(),
-        };
+    let instance_name = AdminQuery::map_instance_query_result(user.get_instance_name(db).await)?;
 
-    match MijnBussieInstance::find_by_username(db, &instance_name).await {
-        Some(instance_data) => (
-            StatusCode::OK,
-            serde_json::to_string_pretty(&instance_data).unwrap(),
-        )
-            .into_response(),
-        None => (
-            StatusCode::NO_CONTENT,
-            format!("Could not find user_data from \"{instance_name}\""),
-        )
-            .into_response(),
-    }
+    Ok(Json(
+        MijnBussieInstance::find_by_username(db, &instance_name).await?,
+    ))
 }
 
-pub async fn get_example_user() -> impl IntoResponse {
-    (
-        StatusCode::OK,
-        [(header::CONTENT_TYPE, "application/json")],
-        Json(MijnBussieInstance::default()),
-    )
-        .into_response()
+pub async fn get_example_user() -> Json<MijnBussieInstance> {
+    Json(MijnBussieInstance::default())
 }
 
-pub async fn get_failed_users(State(data): State<AppState>) -> impl IntoResponse {
+pub async fn get_failed_users(
+    State(data): State<AppState>,
+) -> GenResult<Json<HashMap<String, Value>>> {
     let db = &data.db;
-    if let Ok(instances) = user_data::Entity::find().all(db).await {
-        let usernames: Vec<String> = instances
-            .into_iter()
-            .map(|instance| instance.user_name)
-            .collect();
-        let mut failed_hashmap = HashMap::new();
-        for username in usernames {
-            _ = instance_api::get_request(&username, instance_api::InstanceGetRequests::ExitCode)
-                .await
-                .ok()
-                .map(|response| serde_json::from_str::<Value>(&response.1).ok())
-                .flatten()
-                .is_some_and(|exit_code| {
-                    if exit_code["ExitCode"] != "OK" {
-                        failed_hashmap.insert(username, exit_code["ExitCode"].clone());
-                    }
-                    true
-                });
-        }
-        (StatusCode::OK, Json(failed_hashmap)).into_response()
-    } else {
-        StatusCode::INTERNAL_SERVER_ERROR.into_response()
+    let instances = user_data::Entity::find().all(db).await?;
+    let usernames: Vec<String> = instances
+        .into_iter()
+        .map(|instance| instance.user_name)
+        .collect();
+    let mut failed_hashmap = HashMap::new();
+    for username in usernames {
+        _ = instance_api::get_request(&username, instance_api::InstanceGetRequests::ExitCode)
+            .await
+            .ok()
+            .map(|response| serde_json::from_str::<Value>(&response).ok())
+            .flatten()
+            .is_some_and(|exit_code| {
+                if exit_code["ExitCode"] != "OK" {
+                    failed_hashmap.insert(username, exit_code["ExitCode"].clone());
+                }
+                true
+            });
     }
+    Ok(Json(failed_hashmap))
 }
 
 pub async fn update_properties_admin(
     State(data): State<AppState>,
     Json(instance): Json<MijnBussieInstance>,
-) -> impl IntoResponse {
+) -> GenResult<()> {
     let db = &data.db;
-    match instance.update_properties(db).await {
-        Ok(_) => StatusCode::OK.into_response(),
-        Err(err) => (StatusCode::INTERNAL_SERVER_ERROR, err.to_string()).into_response(),
-    }
+    Ok(instance.update_properties(db).await?)
 }
 
 pub async fn create_instance_admin(
     State(data): State<AppState>,
     Json(instance): Json<MijnBussieInstance>,
-) -> impl IntoResponse {
+) -> GenResult<String> {
     let db = &data.db;
-    match MijnBussieInstance::create_and_insert_instance(instance, db, true).await {
-        Ok(InstanceMatchReturn::Exact(_)) => {
-            (StatusCode::OK, "An existing instance as already found").into_response()
-        }
-        Ok(InstanceMatchReturn::Partial) => (
-            StatusCode::CONFLICT,
-            "An existing instance was found, with different credentials",
-        )
-            .into_response(),
-        Ok(_) => StatusCode::OK.into_response(),
-        Err(err) => (StatusCode::INTERNAL_SERVER_ERROR, err.to_string()).into_response(),
-    }
+    Ok(
+        MijnBussieInstance::create_and_insert_instance(instance, db, true)
+            .await?
+            .to_string(),
+    )
 }
 
 pub async fn assign_instance_to_account(
