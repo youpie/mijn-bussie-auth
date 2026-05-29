@@ -1,6 +1,7 @@
 use sea_orm::ActiveValue::{NotSet, Set};
 // type UserPropertiesModel = user_properties::Model;
-use crate::{Client, decrypt_value, encrypt_value};
+use crate::Client;
+use crate::crypt::{decrypt_value, encrypt_value};
 use sea_orm::ActiveModelTrait;
 use sea_orm::{ColumnTrait, IntoActiveModel};
 use sea_orm::{DatabaseConnection, DerivePartialModel, EntityTrait, QueryFilter};
@@ -70,7 +71,7 @@ impl MijnBussieInstance {
         db: &DatabaseConnection,
         personeelsnummer: &str,
     ) -> GenResult<Option<i32>> {
-        let personeelsnummer_int = personeelsnummer.parse::<u64>()?.to_string();
+        let personeelsnummer_int = personeelsnummer.parse::<u64>().d()?.to_string();
         let user_exists = user_data::Entity::find()
             .filter(user_data::Column::UserName.contains(personeelsnummer_int))
             .one(db)
@@ -110,7 +111,7 @@ impl MijnBussieInstance {
     pub fn get_name(&self) -> GenResult<String> {
         match &self.name {
             Some(name) => Ok(decrypt_value(name, false)?),
-            None => Err(anyhow!("Empty name")),
+            None => Err(anyhow!("Empty name").into()),
         }
     }
 
@@ -128,7 +129,7 @@ impl MijnBussieInstance {
         let user_name = if custom_username && !self.user_name.is_empty() {
             self.user_name.clone()
         } else {
-            self.personeelsnummer.parse::<u64>()?.to_string()
+            self.personeelsnummer.parse::<u64>().d()?.to_string()
         };
         let random_filename = random_str::get_string(12, true, true, true, false);
 

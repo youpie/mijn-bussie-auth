@@ -13,9 +13,9 @@ pub async fn change_information_protected(
     auth_session: AuthSession,
     State(data): State<AppState>,
     Json(information): Json<InstanceInformation>,
-) -> impl IntoResponse {
-    let user = auth_session.user.expect("No user in protected space");
-    let data = data.db;
+) -> GenResult<()> {
+    let db = data.db;
+    let user_instance = auth_session.get_user()?.get_instance_data(&db).await?;
     let information = information.censor();
-    information.change_information_protected(data, user).await
+    Ok(information.change_information(&db, &user_instance).await?)
 }

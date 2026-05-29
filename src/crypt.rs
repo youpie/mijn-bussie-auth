@@ -14,7 +14,7 @@ pub fn encrypt_value(value: &str) -> GenResult<String> {
     Ok(value)
 }
 
-fn decrypt_value(encrypted_value: &str, make_lowercase: bool) -> GenResult<String> {
+pub fn decrypt_value(encrypted_value: &str, make_lowercase: bool) -> GenResult<String> {
     let secret_string = var("PASSWORD_SECRET").d()?;
     let secret = secret_string.as_bytes();
     let mut text = String::from_utf8(

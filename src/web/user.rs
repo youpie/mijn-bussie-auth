@@ -6,7 +6,6 @@ use std::str::FromStr;
 use axum_login::{AuthUser, AuthnBackend, AuthzBackend};
 use bcrypt::DEFAULT_COST;
 use entity::{user_account, user_data};
-use reqwest::StatusCode;
 use sea_orm::ActiveValue::{NotSet, Set};
 use sea_orm::ModelTrait;
 use sea_orm::{ColumnTrait, PaginatorTrait};
@@ -61,11 +60,13 @@ impl UserAccount {
         Ok(())
     }
 
-    pub async fn get_instance_data(
-        &self,
-        db: &DatabaseConnection,
-    ) -> GenResult<Option<user_data::Model>> {
-        Ok(self.inner.find_related(user_data::Entity).one(db).await?)
+    pub async fn get_instance_data(&self, db: &DatabaseConnection) -> GenResult<user_data::Model> {
+        Ok(self
+            .inner
+            .find_related(user_data::Entity)
+            .one(db)
+            .await?
+            .ok_or(AppError::NotFound)?)
     }
 }
 
@@ -187,15 +188,15 @@ impl AuthzBackend for Backend {
 pub type AuthSession = axum_login::AuthSession<Backend>;
 
 pub trait GetUser {
-    fn get_user(self) -> Result<UserAccount, StatusCode>;
+    fn get_user(self) -> Result<UserAccount, AppError>;
     async fn _is_admin(&self) -> bool;
 }
 
 impl GetUser for AuthSession {
-    fn get_user(self) -> Result<UserAccount, StatusCode> {
+    fn get_user(self) -> Result<UserAccount, AppError> {
         match self.user {
             Some(user) => Ok(user),
-            None => Err(StatusCode::INTERNAL_SERVER_ERROR),
+            None => Err(AppError::Unauthorized),
         }
     }
 

@@ -1,8 +1,7 @@
-use reqwest::StatusCode;
 use sea_orm::{ActiveValue::Set, DatabaseConnection, EntityTrait, IntoActiveModel};
 use serde::Deserialize;
 
-use crate::{Client, encrypt_value};
+use crate::{Client, crypt::encrypt_value};
 
 use super::*;
 
@@ -15,28 +14,12 @@ pub struct InstanceInformation {
 }
 
 impl InstanceInformation {
-    pub async fn change_information_protected(
-        self,
-        db: DatabaseConnection,
-        user: UserAccount,
-    ) -> impl IntoResponse {
-        let response = if let Ok(Some(instance_data)) = user.get_instance_data(&db).await {
-            match self.change_information(&db, &instance_data).await {
-                Ok(response) => response.into_response(),
-                Err(_) => StatusCode::INTERNAL_SERVER_ERROR.into_response(),
-            }
-        } else {
-            StatusCode::NO_CONTENT.into_response()
-        };
-        response
-    }
-
     // Generic function for chaning user properties
     pub async fn change_information(
         &self,
         db: &DatabaseConnection,
         instance: &user_data::Model,
-    ) -> GenResult<impl IntoResponse> {
+    ) -> GenResult<()> {
         let user_name = instance.user_name.clone();
         let mut instance_data = instance.clone().into_active_model();
         if let Some(new_password) = &self.password {
@@ -54,7 +37,7 @@ impl InstanceInformation {
 
         user_data::Entity::update(instance_data).exec(db).await?;
         refresh_user(Some(&user_name)).await?;
-        Ok(StatusCode::OK.into_response())
+        Ok(())
     }
 }
 
