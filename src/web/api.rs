@@ -5,7 +5,10 @@ use axum_server::tls_rustls::RustlsConfig;
 use dotenvy::var;
 use hyper::header;
 use sea_orm::{Database, DatabaseConnection, sqlx::PgPool};
-use tower_http::cors::{AllowCredentials, AllowHeaders, AllowOrigin, CorsLayer, ExposeHeaders};
+use tower_http::{
+    cors::{AllowCredentials, AllowHeaders, AllowOrigin, CorsLayer, ExposeHeaders},
+    trace::TraceLayer,
+};
 use tower_sessions::{Expiry, SessionManagerLayer, cookie::time::Duration};
 use tower_sessions_sqlx_store::PostgresStore;
 
@@ -86,6 +89,7 @@ impl AppState {
             .merge(new_user::router())
             .layer(auth_layer)
             .layer(cors)
+            .layer(TraceLayer::new_for_http())
             .with_state(test);
 
         let port = var("API_PORT").d()?;

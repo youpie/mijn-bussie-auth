@@ -12,6 +12,7 @@ mod web;
 #[dotenvy::load(override_ = true)]
 #[tokio::main]
 async fn main() -> GenResult<()> {
+    tracing_subscriber::fmt::init();
     CryptoProvider::install_default(default_provider()).unwrap();
     AppState::new().await?.serve().await?;
     Ok(())

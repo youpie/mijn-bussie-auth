@@ -12,30 +12,30 @@ pub fn router() -> Router<AppState> {
 async fn get_email_list(
     Query(user): Query<AdminQuery>,
     State(data): State<AppState>,
-) -> Json<Vec<String>> {
+) -> GenResult<Json<Vec<String>>> {
     let db = &data.db;
     let all_users = get_users(db, user.to_option()).await;
-    Json(
-        all_users
-            .iter()
-            .filter_map(|user| user.get_email().warn_owned("Decrypting email").ok())
-            .collect::<Vec<String>>(),
-    )
+    all_users
+        .iter()
+        .filter_map(|user| user.get_email().warn_owned("Decrypting email").ok())
+        .collect::<Vec<String>>()
+        .not_found()
+        .map(|i| Json(i))
 }
 
 async fn get_name_list(
     Query(user): Query<AdminQuery>,
     State(data): State<AppState>,
-) -> Json<Vec<String>> {
+) -> GenResult<Json<Vec<String>>> {
     let db = &data.db;
     let all_users = get_users(db, user.to_option()).await;
 
-    Json(
-        all_users
-            .iter()
-            .filter_map(|user| user.get_name().ok())
-            .collect::<Vec<String>>(),
-    )
+    all_users
+        .iter()
+        .filter_map(|user| user.get_name().ok())
+        .collect::<Vec<String>>()
+        .not_found()
+        .map(|i| Json(i))
 }
 
 async fn get_account_list(
@@ -65,7 +65,7 @@ async fn get_account_list(
         }
     }
 
-    Ok(Json(account_combination))
+    account_combination.not_found().map(|i| Json(i))
 }
 
 async fn get_users(db: &DatabaseConnection, users: Option<AdminQuery>) -> Vec<MijnBussieInstance> {

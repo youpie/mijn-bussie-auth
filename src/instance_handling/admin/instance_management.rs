@@ -77,13 +77,15 @@ pub async fn update_properties_admin(
 pub async fn create_instance_admin(
     State(data): State<AppState>,
     Json(instance): Json<MijnBussieInstance>,
-) -> GenResult<String> {
+) -> GenResult<(StatusCode, String)> {
     let db = &data.db;
-    Ok(
-        MijnBussieInstance::create_and_insert_instance(instance, db, true)
-            .await?
-            .to_string(),
-    )
+    match MijnBussieInstance::create_and_insert_instance(instance, db, true).await? {
+        InstanceMatchReturn::NewUser(user) => Ok((
+            StatusCode::CREATED,
+            InstanceMatchReturn::NewUser(user).to_string(),
+        )),
+        matching => Ok((StatusCode::CONFLICT, matching.to_string())),
+    }
 }
 
 pub async fn assign_instance_to_account(

@@ -3,15 +3,15 @@ use strum::Display;
 // type UserPropertiesModel = user_properties::Model;
 use crate::Client;
 use crate::crypt::{decrypt_value, encrypt_value};
-use sea_orm::ActiveModelTrait;
 use sea_orm::{ColumnTrait, IntoActiveModel};
 use sea_orm::{DatabaseConnection, DerivePartialModel, EntityTrait, QueryFilter};
 use serde::{Deserialize, Serialize};
 
 use super::*;
 
-const EMAIL_INTERVAL: i32 = 3 * 60;
+const EMAIL_INTERVAL: i32 = 4 * 60;
 const BARE_INTERVAL: i32 = 6 * 60;
+const STUDENT_INTERVAL: i32 = 2 * 60;
 
 enum InstanceMatch {
     No,
@@ -23,7 +23,7 @@ enum InstanceMatch {
 pub enum InstanceMatchReturn {
     #[strum(to_string = "A new user has been made")]
     NewUser(UserDataModel),
-    #[strum(to_string = "An existing instance has been found, with incorrect credentials")]
+    #[strum(to_string = "An existing instance has been found, with different credentials")]
     Partial,
     #[strum(to_string = "An existing instance has been found")]
     Exact(UserDataModel),
@@ -60,6 +60,8 @@ pub struct MijnBussieInstance {
     pub online_created: bool,
     #[sea_orm(nested)]
     pub user_properties: user_properties::Model,
+    #[sea_orm(skip)]
+    pub is_student: bool,
 }
 
 #[derive(Debug, DerivePartialModel, Deserialize, Serialize, Clone, Default)]
@@ -213,7 +215,6 @@ impl MijnBussieInstance {
 
     pub async fn update_properties(self, db: &DatabaseConnection) -> GenResult<()> {
         let properties = self.user_properties.into_active_model();
-
         user_properties::Entity::update(properties)
             .validate()?
             .exec(db)
@@ -228,6 +229,8 @@ impl MijnBussieInstance {
             | properties.send_mail_removed_shift
         {
             EMAIL_INTERVAL
+        } else if self.is_student {
+            STUDENT_INTERVAL
         } else {
             BARE_INTERVAL
         }

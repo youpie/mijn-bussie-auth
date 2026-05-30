@@ -4,6 +4,9 @@ use anyhow::anyhow;
 use axum::response::IntoResponse;
 use hyper::StatusCode;
 use thiserror::Error;
+use tracing::warn;
+
+use crate::prelude;
 
 pub type GenResult<T> = Result<T, AppError>;
 
@@ -52,7 +55,7 @@ pub enum AppError {
 
 impl IntoResponse for AppError {
     fn into_response(self) -> axum::response::Response {
-        println!("{}", &self.to_string());
+        warn!("{}", &self.to_string());
         match self {
             Self::Database(_) => StatusCode::INTERNAL_SERVER_ERROR.into_response(),
             Self::Generic(_) => StatusCode::INTERNAL_SERVER_ERROR.into_response(),
@@ -81,12 +84,34 @@ impl<T, E: Into<anyhow::Error>> IntoAnyhow<T> for Result<T, E> {
     }
 }
 
+pub trait NotFound<T> {
+    fn not_found(self) -> GenResult<T>;
+}
+
+impl<T> NotFound<T> for Option<T> {
+    /// Map an option `None` to a `AppError::NotFound`
+    fn not_found(self) -> GenResult<T> {
+        match self {
+            Some(value) => Ok(value),
+            None => Err(AppError::NotFound),
+        }
+    }
+}
+
+impl<T> NotFound<Vec<T>> for Vec<T> {
+    /// Map an empty `vec` to a `AppError::NotFound`
+    fn not_found(self) -> GenResult<Vec<T>> {
+        if self.is_empty() {
+            Err(AppError::NotFound)
+        } else {
+            Ok(self)
+        }
+    }
+}
+
 pub trait OptionResult<T> {
     fn result(self) -> GenResult<T>;
     fn result_reason(self, reason: &str) -> GenResult<T>;
-
-    /// Map an option `None` to a `AppError::NotFound`
-    fn not_found(self) -> GenResult<T>;
 }
 
 impl<T> OptionResult<T> for Option<T> {
@@ -100,13 +125,6 @@ impl<T> OptionResult<T> for Option<T> {
         match self {
             Some(value) => Ok(value),
             None => Err(anyhow!("{}", reason).into()),
-        }
-    }
-
-    fn not_found(self) -> GenResult<T> {
-        match self {
-            Some(value) => Ok(value),
-            None => Err(AppError::NotFound),
         }
     }
 }
