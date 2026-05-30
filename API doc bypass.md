@@ -30,13 +30,14 @@
     "personeelsnummer": "123456",
     "password": "Password",
     "email": "youp@protonmail.com",
+    "is_student": true
     {
         "send_mail_new_shift": false,
         "send_mail_updated_shift": false,
         "send_mail_removed_shift": false,
         "send_failed_signin_mail": false,
         "split_night_shift": false,
-        "stop_midnight_shift": false,
+        "stop_midnight_shift": false
     }
 
 }

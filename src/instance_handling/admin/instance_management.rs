@@ -25,10 +25,13 @@ pub async fn get_instance_data_admin(
 ) -> GenResult<Json<MijnBussieInstance>> {
     let db = &data.db;
     let instance_name = AdminQuery::map_instance_query_result(user.get_instance_name(db).await)?;
-
-    Ok(Json(
-        MijnBussieInstance::find_by_username(db, &instance_name).await?,
-    ))
+    let mut instance = MijnBussieInstance::find_by_username(db, &instance_name).await?;
+    // TODO dit moet netjeser kunnen
+    instance.password = String::new();
+    instance.email = String::new();
+    instance.name = instance.name.map(|_| String::new());
+    instance.personeelsnummer = String::new();
+    Ok(Json(instance))
 }
 
 pub async fn get_example_user() -> Json<MijnBussieInstance> {
@@ -70,6 +73,7 @@ pub async fn update_properties_admin(
 ) -> GenResult<()> {
     let mut instance = MijnBussieInstance::default();
     instance.user_properties = properties;
+
     let db = &data.db;
     Ok(instance.update_properties(db).await?)
 }

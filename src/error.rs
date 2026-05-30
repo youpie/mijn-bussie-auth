@@ -1,12 +1,9 @@
 use std::fmt::Display;
 
-use anyhow::anyhow;
 use axum::response::IntoResponse;
-use hyper::StatusCode;
 use thiserror::Error;
-use tracing::warn;
 
-use crate::prelude;
+use crate::prelude::*;
 
 pub type GenResult<T> = Result<T, AppError>;
 
@@ -55,7 +52,10 @@ pub enum AppError {
 
 impl IntoResponse for AppError {
     fn into_response(self) -> axum::response::Response {
-        warn!("{}", &self.to_string());
+        match self {
+            AppError::NotFound => (),
+            _ => warn!("{}", &self.to_string()),
+        };
         match self {
             Self::Database(_) => StatusCode::INTERNAL_SERVER_ERROR.into_response(),
             Self::Generic(_) => StatusCode::INTERNAL_SERVER_ERROR.into_response(),

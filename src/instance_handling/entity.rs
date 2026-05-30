@@ -61,6 +61,7 @@ pub struct MijnBussieInstance {
     #[sea_orm(nested)]
     pub user_properties: user_properties::Model,
     #[sea_orm(skip)]
+    #[serde(skip_serializing, default)]
     pub is_student: bool,
 }
 
@@ -141,6 +142,10 @@ impl MijnBussieInstance {
         let mut user_properties = self.user_properties.clone().into_active_model();
         user_properties.user_properties_id = NotSet;
 
+        if self.user_properties.execution_interval_minutes == 0 {
+            user_properties.execution_interval_minutes = Set(self.calculate_execution_interval());
+        }
+
         let user_data = user_data::ActiveModel {
             user_data_id: NotSet,
             user_name: Set(user_name.clone()),
@@ -214,7 +219,9 @@ impl MijnBussieInstance {
     }
 
     pub async fn update_properties(self, db: &DatabaseConnection) -> GenResult<()> {
-        let properties = self.user_properties.into_active_model();
+        let properties = self.user_properties;
+        // warn!("{properties:#?}");
+        let properties = properties.into_active_model();
         user_properties::Entity::update(properties)
             .validate()?
             .exec(db)
@@ -287,12 +294,12 @@ impl Client for MijnBussieInstance {
     }
 }
 
-trait ToInstance {
-    fn map_to_instance(self) -> MijnBussieInstance;
-}
+// trait ToInstance {
+//     fn map_to_instance(self) -> MijnBussieInstance;
+// }
 
-impl ToInstance for user_data::Model {
-    fn map_to_instance(self) -> MijnBussieInstance {
-        todo!()
-    }
-}
+// impl ToInstance for user_data::Model {
+//     fn map_to_instance(self) -> MijnBussieInstance {
+//         todo!()
+//     }
+// }
