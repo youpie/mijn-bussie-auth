@@ -1,136 +1,59 @@
-use axum::{
-    Router,
-    routing::{get, post},
-};
+use axum::extract::rejection::QueryRejection;
 
-use crate::{
-    instance_handling::admin::passthrough::{
-        get::instance_get,
-        post::{instance_post, refresh_instance},
-    },
-    web::api::Api,
-};
+use super::*;
 
-pub fn router() -> Router<Api> {
+pub fn router() -> Router<AppState> {
     Router::new()
         .route("/{request}", get(instance_get))
         .route("/{request}", post(instance_post))
-        .route("/kuma/{request}", post(self::post::handle_kuma))
+        .route("/kuma/{request}", post(handle_kuma))
         .route("/refresh", post(refresh_instance))
 }
 
-mod get {
-    use axum::{
-        extract::{Path, Query, State},
-        response::IntoResponse,
-    };
-    use reqwest::StatusCode;
-
-    use crate::{
-        instance_handling::{
-            admin::AdminQuery,
-            instance_api::{self, InstanceGetRequests},
-        },
-        web::api::Api,
-    };
-
-    pub async fn instance_get(
-        State(data): State<Api>,
-        Path(request_type): Path<InstanceGetRequests>,
-        Query(user): Query<AdminQuery>,
-    ) -> impl IntoResponse {
-        let db = &data.db;
-        let instance_name =
-            match AdminQuery::map_instance_query_result(user.get_instance_name(db).await) {
-                Ok(name) => name,
-                Err(names) => return names.into_response(),
-            };
-        let response = match instance_api::Instance::get_request(&instance_name, request_type).await
-        {
-            Ok(respone) => respone,
-            Err(err) => (StatusCode::INTERNAL_SERVER_ERROR, err.to_string()),
-        };
-        response.into_response()
-    }
+pub async fn instance_get(
+    State(data): State<AppState>,
+    Path(request_type): Path<InstanceGetRequests>,
+    Query(user): Query<AdminQuery>,
+) -> GenResult<String> {
+    let instance_name =
+        AdminQuery::map_instance_query_result(user.get_instance_name(&data.db).await)?;
+    Ok(instance_api::get_request(&data.client, &instance_name, request_type).await?)
 }
 
-mod post {
-    use axum::{
-        extract::{Path, Query, State, rejection::QueryRejection},
-        response::IntoResponse,
-    };
-    use reqwest::StatusCode;
+pub async fn instance_post(
+    State(data): State<AppState>,
+    Path(request_type): Path<InstancePostRequests>,
+    Query(user): Query<AdminQuery>,
+) -> GenResult<String> {
+    let db = &data.db;
 
-    use crate::{
-        instance_handling::{
-            admin::AdminQuery,
-            generic::create_instance::post::remove_user_from_instance,
-            instance_api::{self, Instance, InstancePostRequests, KumaRequest},
-        },
-        web::api::Api,
-    };
-
-    pub async fn instance_post(
-        State(data): State<Api>,
-        Path(request_type): Path<InstancePostRequests>,
-        Query(user): Query<AdminQuery>,
-    ) -> impl IntoResponse {
-        let db = &data.db;
-
-        // If instance passthrough request is Delete, the user must first be unassigned as to prevent the database from removing the account (admin only)
-        if request_type == InstancePostRequests::Delete {
-            let user_account = user.get_user_account(db, true).await;
-            if let Some(account) = user_account {
-                _ = remove_user_from_instance(db, &account).await;
-            }
-        }
-
-        let instance_name =
-            match AdminQuery::map_instance_query_result(user.get_instance_name(db).await) {
-                Ok(name) => name,
-                Err(names) => return names.into_response(),
-            };
-        match instance_api::Instance::post_request(&instance_name, request_type).await {
-            Ok(response) => response,
-            Err(err) => (StatusCode::INTERNAL_SERVER_ERROR, err.to_string()),
-        }
-        .into_response()
+    // If instance passthrough request is Delete, the user must first be unassigned as to prevent the database from removing the account (admin only)
+    if request_type == InstancePostRequests::Delete {
+        let user_account = user.get_user_account(db, true).await?;
+        _ = detach_user_from_instance(db, &user_account).await;
     }
 
-    pub async fn refresh_instance(
-        State(data): State<Api>,
-        Query(user): Query<AdminQuery>,
-    ) -> impl IntoResponse {
-        let instance_name =
-            match AdminQuery::map_instance_query_result(user.get_instance_name(&data.db).await) {
-                Ok(name) => Some(name),
-                Err(err) if err.0 == StatusCode::MULTIPLE_CHOICES => return err.into_response(),
-                Err(_) => None,
-            };
+    let instance_name = AdminQuery::map_instance_query_result(user.get_instance_name(db).await)?;
+    Ok(instance_api::post_request(&data.client, &instance_name, request_type).await?)
+}
 
-        match instance_api::Instance::refresh_user(instance_name.as_deref()).await {
-            Ok(started) => started,
-            Err(err) => (StatusCode::INTERNAL_SERVER_ERROR, err.to_string()),
-        }
-        .into_response()
-    }
+pub async fn refresh_instance(
+    State(data): State<AppState>,
+    Query(user): Query<AdminQuery>,
+) -> GenResult<String> {
+    let instance_name =
+        AdminQuery::map_instance_query_result(user.get_instance_name(&data.db).await).ok();
 
-    #[axum::debug_handler]
-    pub async fn handle_kuma(
-        Path(request): Path<KumaRequest>,
-        State(data): State<Api>,
-        user: Result<Query<AdminQuery>, QueryRejection>,
-    ) -> impl IntoResponse {
-        let Query(user) = user.unwrap_or_default();
-        let instance_name =
-            match AdminQuery::map_instance_query_result(user.get_instance_name(&data.db).await) {
-                Ok(name) => Some(name),
-                Err(err) if err.0 == StatusCode::MULTIPLE_CHOICES => return err.into_response(),
-                Err(_) => None,
-            };
-        match Instance::kuma_request(instance_name.as_deref(), request).await {
-            Ok(code) => code.into_response(),
-            Err(err) => (StatusCode::INTERNAL_SERVER_ERROR, err.to_string()).into_response(),
-        }
-    }
+    Ok(instance_api::refresh_user(&data.client, instance_name.as_deref()).await?)
+}
+
+pub async fn handle_kuma(
+    Path(request): Path<KumaRequest>,
+    State(data): State<AppState>,
+    user: Result<Query<AdminQuery>, QueryRejection>,
+) -> GenResult<()> {
+    let Query(user) = user.unwrap_or_default();
+    let instance_name =
+        AdminQuery::map_instance_query_result(user.get_instance_name(&data.db).await).ok();
+    Ok(kuma_request(&data.client, instance_name.as_deref(), request).await?)
 }

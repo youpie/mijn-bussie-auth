@@ -3,11 +3,52 @@
 use std::str::FromStr;
 
 use dotenvy::var;
-use reqwest::{Response, StatusCode, Url};
+use reqwest::{Client, Response, StatusCode, Url};
 use serde::Deserialize;
 use strum::{AsRefStr, EnumString};
+use thiserror::Error;
 
-use crate::GenResult;
+use super::*;
+
+#[derive(Debug, Error)]
+pub enum InstanceApiError {
+    #[error("Reqwest error: {}",0.to_string())]
+    Reqwest(#[from] reqwest::Error),
+    #[error("URL parse error: {}",0.to_string())]
+    Url(#[from] url::ParseError),
+    #[error("ENV parse error: {}",0.to_string())]
+    Env(#[from] dotenvy::Error),
+    #[error("Instance Not Found")]
+    NotFound,
+    #[error("Instance Backend is Offline: {0}")]
+    Offline(String),
+    #[error("API Key Incorrect")]
+    IncorrectKey,
+    #[error("Instance had an Error: {0}")]
+    InstanceError(String),
+}
+
+trait MapResponse {
+    /// Map the Reqwest response to what that means for the Instance
+    async fn map_response(self) -> Result<Response, InstanceApiError>;
+}
+
+impl MapResponse for Result<Response, reqwest::Error> {
+    async fn map_response(self) -> Result<Response, InstanceApiError> {
+        match self {
+            Ok(response) => match response.status() {
+                StatusCode::NO_CONTENT => Err(InstanceApiError::NotFound),
+                StatusCode::INTERNAL_SERVER_ERROR => Err(InstanceApiError::InstanceError(
+                    response.text().await.unwrap_or_default(),
+                )),
+                StatusCode::UNAUTHORIZED => Err(InstanceApiError::IncorrectKey),
+                _ => Ok(response),
+            },
+            Err(e) if e.is_connect() => Err(InstanceApiError::Offline(e.to_string())),
+            Err(e) => Err(e.into()),
+        }
+    }
+}
 
 #[derive(AsRefStr, EnumString, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -39,96 +80,97 @@ pub enum InstancePostRequests {
     Welcome,
 }
 
-pub struct Instance {}
+pub fn create_client() -> Result<Client, InstanceApiError> {
+    Ok(reqwest::Client::builder()
+        .danger_accept_invalid_certs(true)
+        .danger_accept_invalid_hostnames(true)
+        .build()?)
+}
 
-impl Instance {
-    async fn send_request(url: Url) -> reqwest::Result<Response> {
-        let client = reqwest::Client::builder()
-            .danger_accept_invalid_certs(true)
-            .danger_accept_invalid_hostnames(true)
-            .build()?;
-        client.get(url).send().await
+fn create_base_url(user_name: Option<&str>) -> Result<Url, InstanceApiError> {
+    let mut url = Url::from_str(&var("MIJN_BUSSIE_URL")?)?.join("api/")?;
+    if let Some(user_name) = user_name {
+        url = url.join(&format!("{user_name}/"))?;
+    }
+    url.set_query(Some(&format!(
+        "key={}",
+        var("API_KEY").map_err(|_err| InstanceApiError::IncorrectKey)?
+    )));
+    Ok(url)
+}
+
+fn create_base_kuma_url(
+    user_name: Option<&str>,
+    request: KumaRequest,
+) -> Result<Url, InstanceApiError> {
+    let mut url = create_base_url(None)?.join("kuma/")?;
+    url = url.join(&format!("{}/", request.as_ref().to_ascii_lowercase()))?;
+    url = match user_name {
+        Some(user_name) => url.join(user_name)?,
+        None => url.join("all")?,
+    };
+    Ok(url)
+}
+
+fn set_query(mut url: Url) -> Url {
+    url.set_query(Some(&format!(
+        "key={}",
+        var("API_KEY").expect("API key not set")
+    )));
+    url
+}
+
+async fn send_request(client: &Client, url: Url) -> Result<Response, InstanceApiError> {
+    Ok(client.get(url).send().await.map_response().await?)
+}
+
+pub async fn refresh_user(
+    client: &Client,
+    user_name: Option<&str>,
+) -> Result<String, InstanceApiError> {
+    let mut url = create_base_url(None)?;
+    if let Some(user_name) = user_name {
+        url = url.join(&format!("refresh/{user_name}"))?;
+    } else {
+        url = url.join("refresh")?;
     }
 
-    fn create_base_url(user_name: Option<&str>) -> GenResult<Url> {
-        let mut url = Url::from_str(&var("MIJN_BUSSIE_URL")?)?.join("api/")?;
-        if let Some(user_name) = user_name {
-            url = url.join(&format!("{user_name}/"))?;
-        }
-        url.set_query(Some(&format!(
-            "key={}",
-            var("API_KEY").expect("API key not set")
-        )));
-        Ok(url)
-    }
+    url = set_query(url);
+    let request = send_request(client, url).await?;
+    Ok(request.text().await?)
+}
 
-    fn create_base_kuma_url(user_name: Option<&str>, request: KumaRequest) -> GenResult<Url> {
-        let mut url = Self::create_base_url(None)?.join("kuma/")?;
-        url = url.join(&format!("{}/", request.as_ref().to_ascii_lowercase()))?;
-        url = match user_name {
-            Some(user_name) => url.join(user_name)?,
-            None => url.join("all")?,
-        };
-        Ok(url)
-    }
+pub async fn get_request(
+    client: &Client,
+    user_name: &str,
+    request_type: InstanceGetRequests,
+) -> Result<String, InstanceApiError> {
+    let mut url = create_base_url(Some(user_name))?.join(request_type.as_ref())?;
+    url = set_query(url);
+    let request = send_request(client, url).await?;
+    Ok(request.text().await?)
+}
 
-    fn verify_response(response: Response) -> bool {
-        match response.status() {
-            StatusCode::OK => true,
-            _ => false,
-        }
-    }
+pub async fn post_request(
+    client: &Client,
+    user_name: &str,
+    request_type: InstancePostRequests,
+) -> Result<String, InstanceApiError> {
+    let mut url = create_base_url(Some(user_name))?.join(request_type.as_ref())?;
+    url = set_query(url);
+    let request = send_request(client, url).await?;
+    Ok(request.text().await?)
+}
 
-    fn set_query(mut url: Url) -> Url {
-        url.set_query(Some(&format!(
-            "key={}",
-            var("API_KEY").expect("API key not set")
-        )));
-        url
-    }
-
-    pub async fn refresh_user(user_name: Option<&str>) -> GenResult<(StatusCode, String)> {
-        let mut url = Self::create_base_url(None)?;
-        if let Some(user_name) = user_name {
-            url = url.join(&format!("refresh/{user_name}"))?;
-        } else {
-            url = url.join("refresh")?;
-        }
-
-        url = Self::set_query(url);
-        let request = Self::send_request(url).await?;
-        Ok((request.status(), request.text().await?))
-    }
-
-    pub async fn get_request(
-        user_name: &str,
-        request_type: InstanceGetRequests,
-    ) -> GenResult<(StatusCode, String)> {
-        let mut url = Self::create_base_url(Some(user_name))?.join(request_type.as_ref())?;
-        url = Self::set_query(url);
-        let request = Self::send_request(url).await?;
-        Ok((request.status(), request.text().await?))
-    }
-
-    pub async fn post_request(
-        user_name: &str,
-        request_type: InstancePostRequests,
-    ) -> GenResult<(StatusCode, String)> {
-        let mut url = Self::create_base_url(Some(user_name))?.join(request_type.as_ref())?;
-        url = Self::set_query(url);
-        let request = Self::send_request(url).await?;
-        Ok((request.status(), request.text().await?))
-    }
-
-    pub async fn kuma_request(
-        user_name: Option<&str>,
-        request: KumaRequest,
-    ) -> GenResult<StatusCode> {
-        let mut url = Self::create_base_kuma_url(user_name, request)?;
-        url = Self::set_query(url);
-        let request = Self::send_request(url).await?;
-        Ok(request.status())
-    }
+pub async fn kuma_request(
+    client: &Client,
+    user_name: Option<&str>,
+    request: KumaRequest,
+) -> Result<(), InstanceApiError> {
+    let mut url = create_base_kuma_url(user_name, request)?;
+    url = set_query(url);
+    send_request(client, url).await?;
+    Ok(())
 }
 
 impl InstanceGetRequests {

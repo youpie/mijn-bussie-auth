@@ -1,16 +1,17 @@
-use entity::{user_data, user_properties};
 use sea_orm::ActiveValue::{NotSet, Set};
+use strum::Display;
 // type UserPropertiesModel = user_properties::Model;
-use crate::{Client, GenResult, decrypt_value, encrypt_value};
-use sea_orm::ActiveModelTrait;
+use crate::Client;
+use crate::crypt::{decrypt_value, encrypt_value};
 use sea_orm::{ColumnTrait, IntoActiveModel};
 use sea_orm::{DatabaseConnection, DerivePartialModel, EntityTrait, QueryFilter};
 use serde::{Deserialize, Serialize};
 
-pub type UserDataModel = user_data::Model;
+use super::*;
 
-const EMAIL_INTERVAL: i32 = 3 * 60;
+const EMAIL_INTERVAL: i32 = 4 * 60;
 const BARE_INTERVAL: i32 = 6 * 60;
+const STUDENT_INTERVAL: i32 = 2 * 60;
 
 enum InstanceMatch {
     No,
@@ -18,11 +19,14 @@ enum InstanceMatch {
     Exact(UserDataModel),
 }
 
+#[derive(Debug, Serialize, Display)]
 pub enum InstanceMatchReturn {
+    #[strum(to_string = "A new user has been made")]
     NewUser(UserDataModel),
+    #[strum(to_string = "An existing instance has been found, with different credentials")]
     Partial,
+    #[strum(to_string = "An existing instance has been found")]
     Exact(UserDataModel),
-    Unknown,
 }
 
 /// Encrypted values:
@@ -56,6 +60,9 @@ pub struct MijnBussieInstance {
     pub online_created: bool,
     #[sea_orm(nested)]
     pub user_properties: user_properties::Model,
+    #[sea_orm(skip)]
+    #[serde(skip_serializing, default)]
+    pub is_student: bool,
 }
 
 #[derive(Debug, DerivePartialModel, Deserialize, Serialize, Clone, Default)]
@@ -70,24 +77,23 @@ impl MijnBussieInstance {
     pub async fn get_id_from_personeelsnummer(
         db: &DatabaseConnection,
         personeelsnummer: &str,
-    ) -> GenResult<Option<i32>> {
-        let personeelsnummer_int = personeelsnummer.parse::<u64>()?.to_string();
+    ) -> GenResult<i32> {
+        let personeelsnummer_int = personeelsnummer.parse::<u64>().d()?.to_string();
         let user_exists = user_data::Entity::find()
             .filter(user_data::Column::UserName.contains(personeelsnummer_int))
             .one(db)
             .await?;
-        Ok(user_exists.map(|model| model.user_data_id))
+        Ok(user_exists.map_or(Err(AppError::NotFound), |e| Ok(e.user_data_id))?)
     }
 
-    pub async fn find_by_username(db: &DatabaseConnection, user_name: &str) -> Option<Self> {
+    pub async fn find_by_username(db: &DatabaseConnection, user_name: &str) -> GenResult<Self> {
         user_data::Entity::find()
             .filter(user_data::Column::UserName.eq(user_name))
             .left_join(user_properties::Entity)
             .into_partial_model::<Self>()
             .one(db)
-            .await
-            .ok()
-            .flatten()
+            .await?
+            .not_found()
     }
 
     pub async fn get_all_users(db: &DatabaseConnection) -> GenResult<Vec<Self>> {
@@ -111,7 +117,7 @@ impl MijnBussieInstance {
     pub fn get_name(&self) -> GenResult<String> {
         match &self.name {
             Some(name) => Ok(decrypt_value(name, false)?),
-            None => Err("Empty name".into()),
+            None => Err(anyhow!("Empty name").into()),
         }
     }
 
@@ -129,12 +135,16 @@ impl MijnBussieInstance {
         let user_name = if custom_username && !self.user_name.is_empty() {
             self.user_name.clone()
         } else {
-            self.personeelsnummer.parse::<u64>()?.to_string()
+            self.personeelsnummer.parse::<u64>().d()?.to_string()
         };
         let random_filename = random_str::get_string(12, true, true, true, false);
 
         let mut user_properties = self.user_properties.clone().into_active_model();
         user_properties.user_properties_id = NotSet;
+
+        if self.user_properties.execution_interval_minutes == 0 {
+            user_properties.execution_interval_minutes = Set(self.calculate_execution_interval());
+        }
 
         let user_data = user_data::ActiveModel {
             user_data_id: NotSet,
@@ -152,15 +162,14 @@ impl MijnBussieInstance {
             creation_date: Set(chrono::offset::Utc::now().naive_utc()),
             online_created: Set(self.online_created),
         };
-        match self.find_existing_instance(db, &user_name).await {
-            Some(InstanceMatch::Exact(matching_instance)) => {
+        match self.find_existing_instance(db, &user_name).await? {
+            InstanceMatch::Exact(matching_instance) => {
                 Ok(InstanceMatchReturn::Exact(matching_instance))
             }
-            Some(InstanceMatch::No) => Ok(InstanceMatchReturn::NewUser(
+            InstanceMatch::No => Ok(InstanceMatchReturn::NewUser(
                 Self::add_new_user_to_db(db, user_properties, user_data).await?,
             )),
-            Some(_) => Ok(InstanceMatchReturn::Partial),
-            None => Ok(InstanceMatchReturn::Unknown),
+            InstanceMatch::Username => Ok(InstanceMatchReturn::Partial),
         }
     }
 
@@ -185,8 +194,8 @@ impl MijnBussieInstance {
         &self,
         db: &DatabaseConnection,
         user_name: &str,
-    ) -> Option<InstanceMatch> {
-        let existing_instances = user_data::Entity::find().all(db).await.ok()?;
+    ) -> GenResult<InstanceMatch> {
+        let existing_instances = user_data::Entity::find().all(db).await?;
         let matching_instance = existing_instances
             .iter()
             .find(|instance| instance.user_name == user_name);
@@ -194,24 +203,25 @@ impl MijnBussieInstance {
             println!(
                 "An existing instance with the same username has been found, determining if actual match"
             );
-            let match_email = decrypt_value(&instance_match.email, true).ok()?;
-            let match_personeelsnummer =
-                decrypt_value(&instance_match.personeelsnummer, true).ok()?;
+            let match_email = decrypt_value(&instance_match.email, true)?;
+            let match_personeelsnummer = decrypt_value(&instance_match.personeelsnummer, true)?;
             if match_email == self.email.to_lowercase()
                 && match_personeelsnummer == self.personeelsnummer.to_lowercase()
             {
                 println!("It is actually a match!");
-                return Some(InstanceMatch::Exact(instance_match.to_owned()));
+                return Ok(InstanceMatch::Exact(instance_match.to_owned()));
             } else {
                 println!("Only the username matches");
-                return Some(InstanceMatch::Username);
+                return Ok(InstanceMatch::Username);
             }
         }
-        Some(InstanceMatch::No)
+        Ok(InstanceMatch::No)
     }
 
     pub async fn update_properties(self, db: &DatabaseConnection) -> GenResult<()> {
-        let properties = self.user_properties.into_active_model().reset_all();
+        let properties = self.user_properties;
+        // warn!("{properties:#?}");
+        let properties = properties.into_active_model();
         user_properties::Entity::update(properties)
             .validate()?
             .exec(db)
@@ -226,6 +236,8 @@ impl MijnBussieInstance {
             | properties.send_mail_removed_shift
         {
             EMAIL_INTERVAL
+        } else if self.is_student {
+            STUDENT_INTERVAL
         } else {
             BARE_INTERVAL
         }
@@ -233,17 +245,22 @@ impl MijnBussieInstance {
 }
 
 pub trait FindByUsername {
-    async fn find_by_username(db: &DatabaseConnection, user_name: &str) -> Option<UserDataModel>;
+    fn find_by_username(
+        db: &DatabaseConnection,
+        user_name: &str,
+    ) -> impl std::future::Future<Output = GenResult<UserDataModel>> + Send;
 }
 
 impl FindByUsername for user_data::Model {
-    async fn find_by_username(db: &DatabaseConnection, user_name: &str) -> Option<UserDataModel> {
+    async fn find_by_username(
+        db: &DatabaseConnection,
+        user_name: &str,
+    ) -> GenResult<UserDataModel> {
         user_data::Entity::find()
             .filter(user_data::Column::UserName.eq(user_name))
             .one(db)
-            .await
-            .ok()
-            .flatten()
+            .await?
+            .not_found()
     }
 }
 
@@ -277,12 +294,12 @@ impl Client for MijnBussieInstance {
     }
 }
 
-trait Filled {
-    fn is_filled(&self) -> bool;
-}
+// trait ToInstance {
+//     fn map_to_instance(self) -> MijnBussieInstance;
+// }
 
-impl Filled for String {
-    fn is_filled(&self) -> bool {
-        !self.is_empty()
-    }
-}
+// impl ToInstance for user_data::Model {
+//     fn map_to_instance(self) -> MijnBussieInstance {
+//         todo!()
+//     }
+// }

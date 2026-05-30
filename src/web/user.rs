@@ -1,10 +1,11 @@
+use super::*;
+
 use std::collections::HashSet;
 use std::str::FromStr;
 
 use axum_login::{AuthUser, AuthnBackend, AuthzBackend};
 use bcrypt::DEFAULT_COST;
 use entity::{user_account, user_data};
-use reqwest::StatusCode;
 use sea_orm::ActiveValue::{NotSet, Set};
 use sea_orm::ModelTrait;
 use sea_orm::{ColumnTrait, PaginatorTrait};
@@ -13,9 +14,9 @@ use serde::Deserialize;
 use strum::AsRefStr;
 use tokio::task;
 
-use crate::GenResult;
-
-#[derive(strum::EnumString, AsRefStr, Debug, Clone, PartialEq, Eq, Hash, Default, Copy)]
+#[derive(
+    strum::EnumString, AsRefStr, Debug, Clone, PartialEq, Eq, Hash, Default, Copy, Deserialize,
+)]
 pub enum Role {
     Admin,
     #[default]
@@ -32,7 +33,9 @@ pub struct UserAccount {
 impl UserAccount {
     pub async fn add_user(db: &DatabaseConnection, creds: Credentials) -> GenResult<()> {
         if creds.is_empty() {
-            return Err("Empty credentials".into());
+            return Err(AppError::UserError(AppErrorContext::new_user(
+                "Empty credentials!".to_owned(),
+            )));
         }
 
         // If it is the first user, it will automatically be made Admin
@@ -44,7 +47,10 @@ impl UserAccount {
         };
 
         let password_hash =
-            tokio::task::spawn_blocking(|| bcrypt::hash(creds.password, DEFAULT_COST)).await??;
+            tokio::task::spawn_blocking(|| bcrypt::hash(creds.password, DEFAULT_COST))
+                .await
+                .d()?
+                .d()?;
         let account = user_account::ActiveModel {
             account_id: NotSet,
             username: Set(creds.username),
@@ -56,11 +62,13 @@ impl UserAccount {
         Ok(())
     }
 
-    pub async fn get_instance_data(
-        &self,
-        db: &DatabaseConnection,
-    ) -> GenResult<Option<user_data::Model>> {
-        Ok(self.inner.find_related(user_data::Entity).one(db).await?)
+    pub async fn get_instance_data(&self, db: &DatabaseConnection) -> GenResult<user_data::Model> {
+        Ok(self
+            .inner
+            .find_related(user_data::Entity)
+            .one(db)
+            .await?
+            .not_found()?)
     }
 }
 
@@ -182,15 +190,16 @@ impl AuthzBackend for Backend {
 pub type AuthSession = axum_login::AuthSession<Backend>;
 
 pub trait GetUser {
-    fn get_user(self) -> Result<UserAccount, StatusCode>;
+    fn get_user(self) -> Result<UserAccount, AppError>;
+    #[allow(async_fn_in_trait)]
     async fn _is_admin(&self) -> bool;
 }
 
 impl GetUser for AuthSession {
-    fn get_user(self) -> Result<UserAccount, StatusCode> {
+    fn get_user(self) -> Result<UserAccount, AppError> {
         match self.user {
             Some(user) => Ok(user),
-            None => Err(StatusCode::INTERNAL_SERVER_ERROR),
+            None => Err(AppError::Unauthorized),
         }
     }
 

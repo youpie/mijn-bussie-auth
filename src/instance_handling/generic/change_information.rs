@@ -1,12 +1,9 @@
-use axum::response::IntoResponse;
-use entity::user_data;
-use reqwest::StatusCode;
-use sea_orm::{ActiveValue::Set, DatabaseConnection, EntityTrait, IntoActiveModel};
+use sea_orm::{ActiveValue::Set, EntityTrait, IntoActiveModel};
 use serde::Deserialize;
 
-use crate::{
-    Client, GenResult, encrypt_value, instance_handling::instance_api::Instance, web::user::UserAccount
-};
+use crate::{Client, crypt::encrypt_value};
+
+use super::*;
 
 #[derive(Debug, Deserialize, Default)]
 pub struct InstanceInformation {
@@ -17,28 +14,12 @@ pub struct InstanceInformation {
 }
 
 impl InstanceInformation {
-    pub async fn change_information_protected(
-        self,
-        db: DatabaseConnection,
-        user: UserAccount,
-    ) -> impl IntoResponse {
-        let response = if let Ok(Some(instance_data)) = user.get_instance_data(&db).await {
-            match self.change_information(&db, &instance_data).await {
-                Ok(response) => response.into_response(),
-                Err(_) => StatusCode::INTERNAL_SERVER_ERROR.into_response(),
-            }
-        } else {
-            StatusCode::NO_CONTENT.into_response()
-        };
-        response
-    }
-
     // Generic function for chaning user properties
     pub async fn change_information(
         &self,
-        db: &DatabaseConnection,
+        state: &AppState,
         instance: &user_data::Model,
-    ) -> GenResult<impl IntoResponse> {
+    ) -> GenResult<()> {
         let user_name = instance.user_name.clone();
         let mut instance_data = instance.clone().into_active_model();
         if let Some(new_password) = &self.password {
@@ -54,9 +35,11 @@ impl InstanceInformation {
             instance_data.user_name = Set(new_username.clone());
         }
 
-        user_data::Entity::update(instance_data).exec(db).await?;
-        Instance::refresh_user(Some(&user_name)).await?;
-        Ok(StatusCode::OK.into_response())
+        user_data::Entity::update(instance_data)
+            .exec(&state.db)
+            .await?;
+        refresh_user(&state.client, Some(&user_name)).await?;
+        Ok(())
     }
 }
 

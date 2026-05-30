@@ -119,9 +119,7 @@ async function import_properties() {
     url = add_admin_query(url);
     let response = await send_request(url, "GET", "")
     let full_json = JSON.parse(await response.text())["user_properties"]
-    let user_properties = {
-        "user_properties": full_json
-    }
+    let user_properties = full_json
     document.getElementById("user_properties").innerText = JSON.stringify(user_properties)
 }
 

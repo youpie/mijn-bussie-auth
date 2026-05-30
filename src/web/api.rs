@@ -1,42 +1,47 @@
 use std::{path::PathBuf, str::FromStr};
 
-use axum::Router;
 use axum_login::{AuthManagerLayerBuilder, login_required, permission_required};
 use axum_server::tls_rustls::RustlsConfig;
 use dotenvy::var;
 use hyper::header;
 use sea_orm::{Database, DatabaseConnection, sqlx::PgPool};
-use tower_http::cors::{AllowCredentials, AllowHeaders, AllowOrigin, CorsLayer, ExposeHeaders};
+use tower_http::{
+    cors::{AllowCredentials, AllowHeaders, AllowOrigin, CorsLayer, ExposeHeaders},
+    trace::TraceLayer,
+};
 use tower_sessions::{Expiry, SessionManagerLayer, cookie::time::Duration};
 use tower_sessions_sqlx_store::PostgresStore;
 
 use crate::{
-    GenResult, instance_handling,
+    instance_handling,
     web::{
         admin, auth, new_user,
         user::{Backend, Role},
     },
 };
 
+use super::*;
+
 #[derive(Debug, Clone)]
-pub struct Api {
+pub struct AppState {
     pub db: DatabaseConnection,
+    pub client: reqwest::Client,
 }
 
-impl Api {
+impl AppState {
     pub async fn new() -> GenResult<Self> {
-        
-        let db = Database::connect(&Api::db_url()?)
+        let db = Database::connect(&AppState::db_url()?)
             .await
             .expect("Could not connect to database");
+        let client = crate::instance_handling::instance_api::create_client()?;
         println!("Connected to database!");
-        Ok(Self { db })
+        Ok(Self { db, client })
     }
 
     fn db_url() -> GenResult<String> {
         Ok(match var("AUTH_DATABASE_URL") {
             Ok(url) => url,
-            Err(_) => var("DATABASE_URL")?
+            Err(_) => var("DATABASE_URL").d()?,
         })
     }
 
@@ -45,10 +50,10 @@ impl Api {
         //
         // This uses `tower-sessions` to establish a layer that will provide the session
         // as a request extension.
-        let pg_pool = PgPool::connect_lazy(&Api::db_url()?)?;
+        let pg_pool = PgPool::connect_lazy(&AppState::db_url()?).d()?;
         let session_store = PostgresStore::new(pg_pool);
 
-        session_store.migrate().await?;
+        session_store.migrate().await.d()?;
         let session_layer = SessionManagerLayer::new(session_store)
             .with_secure(true)
             .with_same_site(tower_sessions::cookie::SameSite::None)
@@ -79,14 +84,15 @@ impl Api {
             .merge(instance_handling::protected_router())
             .merge(super::protected::protected_router())
             .route_layer(login_required!(Backend))
-            .nest("/bypass", crate::bypass::router())
+            .nest("/bypass", instance_handling::bypass::router())
             .merge(auth::router())
             .merge(new_user::router())
             .layer(auth_layer)
             .layer(cors)
+            .layer(TraceLayer::new_for_http())
             .with_state(test);
 
-        let port = var("API_PORT")?;
+        let port = var("API_PORT").d()?;
         println!("Starting app at port {port}");
         axum_server::bind_rustls(
             std::net::SocketAddr::from_str(&format!("0.0.0.0:{port}")).unwrap(),

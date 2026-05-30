@@ -1,8 +1,8 @@
 use axum::{Router, routing::get};
 
-use crate::web::api::Api;
+use crate::web::api::AppState;
 
-pub fn router() -> Router<Api> {
+pub fn router() -> Router<AppState> {
     Router::new().route("/me", get(self::get::me))
 }
 
