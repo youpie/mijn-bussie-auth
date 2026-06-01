@@ -28,8 +28,9 @@ pub async fn instance_post(
     let db = &data.db;
 
     // If instance passthrough request is Delete, the user must first be unassigned as to prevent the database from removing the account (admin only)
-    if request_type == InstancePostRequests::Delete {
-        let user_account = user.get_user_account(db, true).await?;
+    if request_type == InstancePostRequests::Delete
+        && let Ok(user_account) = user.get_user_account(db, true).await
+    {
         _ = detach_user_from_instance(db, &user_account).await;
     }
 
