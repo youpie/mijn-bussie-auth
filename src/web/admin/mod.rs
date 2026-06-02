@@ -20,7 +20,7 @@ async fn find_user_account(
 ) -> GenResult<user_account::Model> {
     if let Some(account_name) = query.account_name.as_ref() {
         Ok(user_account::Entity::find()
-            .filter(user_account::Column::Username.contains(account_name))
+            .filter(user_account::Column::Username.eq(account_name))
             .one(db)
             .await?
             .result_reason("Account not found")?)

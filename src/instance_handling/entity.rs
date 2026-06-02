@@ -80,7 +80,7 @@ impl MijnBussieInstance {
     ) -> GenResult<i32> {
         let personeelsnummer_int = personeelsnummer.parse::<u64>().d()?.to_string();
         let user_exists = user_data::Entity::find()
-            .filter(user_data::Column::UserName.contains(personeelsnummer_int))
+            .filter(user_data::Column::UserName.eq(personeelsnummer_int))
             .one(db)
             .await?;
         Ok(user_exists.map_or(Err(AppError::NotFound), |e| Ok(e.user_data_id))?)
@@ -271,7 +271,6 @@ impl Client for MijnBussieInstance {
         let properties = &mut empty_instance.user_properties;
 
         properties.execution_minute = random_str::get_int(0, 59);
-        properties.execution_interval_minutes = self.calculate_execution_interval();
 
         empty_instance.user_name = self.user_name;
         empty_instance.password = self.password;
