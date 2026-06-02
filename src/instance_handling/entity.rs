@@ -231,13 +231,13 @@ impl MijnBussieInstance {
 
     pub fn calculate_execution_interval(&self) -> i32 {
         let properties = &self.user_properties;
-        if properties.send_mail_new_shift
+        if self.is_student {
+            STUDENT_INTERVAL
+        } else if properties.send_mail_new_shift
             | properties.send_mail_updated_shift
             | properties.send_mail_removed_shift
         {
             EMAIL_INTERVAL
-        } else if self.is_student {
-            STUDENT_INTERVAL
         } else {
             BARE_INTERVAL
         }
