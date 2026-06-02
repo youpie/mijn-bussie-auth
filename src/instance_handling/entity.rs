@@ -277,6 +277,8 @@ impl Client for MijnBussieInstance {
         empty_instance.email = self.email;
         empty_instance.personeelsnummer = self.personeelsnummer;
 
+        empty_instance.is_student = self.is_student;
+
         let properties_self = &self.user_properties;
 
         properties.send_mail_new_shift = properties_self.send_failed_signin_mail;
